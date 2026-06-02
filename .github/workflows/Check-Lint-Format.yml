@@ -1,4 +1,4 @@
-name: React Router CI
+name: Check Lint Format
 
 on:
   pull_request:
@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 26.3.0
-          cache: pnpm
 
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
