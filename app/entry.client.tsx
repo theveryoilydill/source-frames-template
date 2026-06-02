@@ -1,10 +1,6 @@
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
-import {
-  createHashRouter,
-  UNSAFE_createClientRoutes,
-  UNSAFE_FrameworkContext,
-} from "react-router";
+import { createHashRouter, UNSAFE_createClientRoutes, UNSAFE_FrameworkContext } from "react-router";
 import { RouterProvider } from "react-router/dom";
 
 declare global {

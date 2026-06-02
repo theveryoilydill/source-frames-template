@@ -36,7 +36,6 @@ This file provides short, actionable instructions for AI coding agents working i
 - Run `npm run typecheck` and ensure no TypeScript errors.
 - Keep changes minimal per PR; if adding new conventions, document them in AGENTS.md or README.md and link.
 
-## Suggested next customizations
+## About the project
 
-- Create a small `.github/copilot-instructions.md` or expand `AGENTS.md` with per-area notes (frontend, routing, deployment).
-- Add automation skills for common tasks: `format`, `typecheck-and-test`, `build-preview`.
+Go look in readme.md for more about the project.
