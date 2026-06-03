@@ -1,5 +1,0 @@
-{
-	"$schema": "./node_modules/oxfmt/configuration_schema.json",
-	"indent_style": "tab",
-	"indent_size": 4
-}
