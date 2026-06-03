@@ -1,34 +1,34 @@
 {
-  "name": "sourceframes",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "react-router build",
-    "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
-    "lint": "oxlint .",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check ."
-  },
-  "dependencies": {
-    "@react-router/node": "7.16.0",
-    "@react-router/serve": "7.16.0",
-    "isbot": "^5.1.40",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router": "7.16.0"
-  },
-  "devDependencies": {
-    "@react-router/dev": "7.16.0",
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/node": "^25.9.1",
-    "@types/react": "^19.2.16",
-    "@types/react-dom": "^19.2.3",
-    "oxfmt": "latest",
-    "oxlint": "latest",
-    "tailwindcss": "^4.3.0",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16"
-  }
+	"name": "sourceframes",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "react-router build",
+		"dev": "react-router dev",
+		"start": "react-router-serve ./build/server/index.js",
+		"typecheck": "react-router typegen && tsc",
+		"lint": "oxlint .",
+		"fmt": "oxfmt .",
+		"fmt:check": "oxfmt --check ."
+	},
+	"dependencies": {
+		"@react-router/node": "7.16.0",
+		"@react-router/serve": "7.16.0",
+		"isbot": "^5.1.40",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"react-router": "7.16.0"
+	},
+	"devDependencies": {
+		"@react-router/dev": "7.16.0",
+		"@tailwindcss/vite": "^4.3.0",
+		"@types/node": "^25.9.1",
+		"@types/react": "^19.2.16",
+		"@types/react-dom": "^19.2.3",
+		"oxfmt": "latest",
+		"oxlint": "latest",
+		"tailwindcss": "^4.3.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16"
+	}
 }
