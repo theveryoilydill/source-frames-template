@@ -2,8 +2,8 @@ root = true
 
 [*.{js,ts,tsx,jsx,css,scss,html,json,md,mdx,rs}]
 indent_style = tab
-indent_size = 4
-tab_width = 4
+indent_size = tab
+tab_width = 2
 end_of_line = crlf
 charset = utf-8
 trim_trailing_whitespace = false
