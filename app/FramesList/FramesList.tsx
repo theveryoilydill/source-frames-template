@@ -63,9 +63,7 @@ export function FramesList({
 				))}
 			</div>
 
-			{openUrl ? (
-				<FrameContent url={openUrl} title={openTitle} onClose={closeOverlay} />
-			) : null}
+			{openUrl ? <FrameContent url={openUrl} title={openTitle} onClose={closeOverlay} /> : null}
 		</section>
 	);
 }
