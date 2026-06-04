@@ -17,10 +17,12 @@ export function FrameItem({
 	source,
 	isFavorite = false,
 	onToggleFavorite,
+	onOpen,
 }: {
 	source: SourceData;
 	isFavorite?: boolean;
 	onToggleFavorite?: (url: string) => void;
+	onOpen?: (url: string, title?: string) => void;
 }) {
 	const hostname = getHostname(source.URL);
 
@@ -88,17 +90,16 @@ export function FrameItem({
 						)}
 					</button>
 
-					<a
-						href={source.URL}
-						target="_blank"
-						rel="noopener noreferrer"
+					<button
+						type="button"
+						onClick={() => onOpen?.(source.URL, source.name)}
 						className="inline-flex shrink-0 items-center rounded-md bg-gray-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-white dark:text-gray-950 dark:hover:bg-blue-200 dark:focus:ring-offset-gray-900"
 					>
 						Open
 						<span className="ml-1" aria-hidden="true">
 							-&gt;
 						</span>
-					</a>
+					</button>
 				</div>
 			</div>
 		</article>

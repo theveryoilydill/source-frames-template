@@ -1,5 +1,6 @@
+import React, { useState } from "react";
 import { FrameItem, type SourceData } from "./FrameItem";
-import React from "react";
+import FrameContent from "../FrameContent/FrameContent";
 
 export function FramesList({
 	query = "",
@@ -14,6 +15,19 @@ export function FramesList({
 }) {
 	const q = query.trim().toLowerCase();
 	const favs = favoritesSet ?? new Set<string>();
+
+	const [openUrl, setOpenUrl] = useState<string | null>(null);
+	const [openTitle, setOpenTitle] = useState<string | undefined>(undefined);
+
+	const handleOpen = (url: string, title?: string) => {
+		setOpenUrl(url);
+		setOpenTitle(title);
+	};
+
+	const closeOverlay = () => {
+		setOpenUrl(null);
+		setOpenTitle(undefined);
+	};
 
 	const filtered = sources.filter((s) => {
 		if (q) {
@@ -44,9 +58,12 @@ export function FramesList({
 						source={source}
 						isFavorite={favs.has(source.URL)}
 						onToggleFavorite={onToggleFavorite}
+						onOpen={handleOpen}
 					/>
 				))}
 			</div>
+
+			{openUrl ? <FrameContent url={openUrl} title={openTitle} onClose={closeOverlay} /> : null}
 		</section>
 	);
 }
