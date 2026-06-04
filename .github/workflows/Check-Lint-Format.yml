@@ -33,13 +33,34 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Oxlint
+        id: lint
         run: pnpm lint
+        continue-on-error: true
 
       - name: Oxfmt Check
+        id: fmt
         run: pnpm fmt:check
+        continue-on-error: true
 
       - name: Type Check
+        id: typecheck
         run: pnpm run typecheck
+        continue-on-error: true
 
       - name: React Router Build
+        id: build
         run: pnpm run build
+        continue-on-error: true
+
+      - name: Fail if any checks failed
+        if: |
+          always() &&
+          (
+            steps.lint.outcome == 'failure' ||
+            steps.fmt.outcome == 'failure' ||
+            steps.typecheck.outcome == 'failure' ||
+            steps.build.outcome == 'failure'
+          )
+        run: |
+          echo "One or more checks failed."
+          exit 1
