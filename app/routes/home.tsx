@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import React from "react";
-import { FramesList, sources } from "../FramesList/FramesList";
+import { FramesList, sources } from "../FramesList/GridFramesList";
 import Header from "../Header";
 
 export function meta(_args: Route.MetaArgs) {
