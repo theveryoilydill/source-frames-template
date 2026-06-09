@@ -2,8 +2,8 @@ import type { Config } from "@react-router/dev/config";
 
 export default {
 	// Config options...
-	ssr: false,
-	prerender: ["/"],
+	ssr: true,
+	prerender: ["/", "/settings"],
 	future: {
 		v8_middleware: true,
 		v8_passThroughRequests: true,
