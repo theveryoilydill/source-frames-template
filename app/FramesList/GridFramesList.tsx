@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FrameItem, type SourceData } from "./FrameItem";
+import { FrameItem, type SourceData } from "./GridFrameItem";
 import FrameContent from "../FrameContent/FrameContent";
 
 export function FramesList({
