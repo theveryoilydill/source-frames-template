@@ -4,15 +4,9 @@ import type { Route } from "./+types/settings";
 import { useRouteError } from "react-router";
 
 export function ErrorBoundary() {
-  const error = useRouteError();
+	const error = useRouteError();
 
-  return (
-    <pre>
-      {error instanceof Error
-        ? error.stack
-        : JSON.stringify(error, null, 2)}
-    </pre>
-  );
+	return <pre>{error instanceof Error ? error.stack : JSON.stringify(error, null, 2)}</pre>;
 }
 
 export function meta(_args: Route.MetaArgs) {

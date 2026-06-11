@@ -1,5 +1,12 @@
 {
   "name": "source-frames-template",
+
+  "main": "./build/server/index.js",
+
+  "assets": {
+    "directory": "./build/client/"
+  },
+
   "compatibility_date": "2026-06-10",
   "compatibility_flags": ["nodejs_compat"],
 
