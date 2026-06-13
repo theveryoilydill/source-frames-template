@@ -16,6 +16,12 @@ export function meta(_args: Route.MetaArgs) {
 export default function Settings() {
 	const [cleared, setCleared] = React.useState(false);
 
+	// For the header
+	/*const [query, setQuery] = React.useState("");
+	const [favoritesOnly, setFavoritesOnly] = React.useState(false);
+	const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(new Set());*/
+	
+
 	const clearFavorites = () => {
 		if (typeof window === "undefined") return;
 		localStorage.removeItem("sf:favorites");
@@ -25,6 +31,8 @@ export default function Settings() {
 
 	return (
 		<main className="min-h-screen bg-gray-50 text-gray-950 dark:bg-gray-950 dark:text-white">
+			<h1>Header will go here</h1>
+
 			<div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
 				<h1 className="text-2xl font-semibold">Settings</h1>
 
