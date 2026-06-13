@@ -1,6 +1,13 @@
 import React from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/settings";
+import { useRouteError } from "react-router";
+
+export function ErrorBoundary() {
+	const error = useRouteError();
+
+	return <pre>{error instanceof Error ? error.stack : JSON.stringify(error, null, 2)}</pre>;
+}
 
 export function meta(_args: Route.MetaArgs) {
 	return [{ title: "Settings" }, { name: "description", content: "The settings page" }];
