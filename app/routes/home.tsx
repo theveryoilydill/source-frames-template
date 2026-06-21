@@ -2,6 +2,7 @@ import type { Route } from "./+types/home";
 import React from "react";
 import { FramesList, sources } from "../FramesList/GridFramesList";
 import Header from "../Header";
+import { useSettings } from "../context/UserData";
 
 export function meta(_args: Route.MetaArgs) {
 	return [
@@ -13,45 +14,17 @@ export function meta(_args: Route.MetaArgs) {
 export default function Home() {
 	const [query, setQuery] = React.useState("");
 	const [favoritesOnly, setFavoritesOnly] = React.useState(false);
-	const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(new Set());
 
-	React.useEffect(() => {
-		if (typeof window === "undefined") return;
-		const raw = localStorage.getItem("sf:favorites");
-		if (raw) {
-			try {
-				const arr = JSON.parse(raw) as string[];
-				setFavoritesSet(new Set(arr));
-			} catch {}
-		}
+	const { settings, setSettings } = useSettings();
 
-		const handler = (e: Event) => {
-			// read from event detail or storage
-			const detail = (e as CustomEvent)?.detail;
-			const arr =
-				detail?.favorites ??
-				(localStorage.getItem("sf:favorites")
-					? JSON.parse(localStorage.getItem("sf:favorites")!)
-					: []);
-			setFavoritesSet(new Set(arr));
-		};
+	const favoritesSet = React.useMemo(() => new Set(settings.FavoriteNames ?? []), [settings.FavoriteNames]);
 
-		window.addEventListener("sf:favoritesUpdated", handler as EventListener);
-		return () => window.removeEventListener("sf:favoritesUpdated", handler as EventListener);
-	}, []);
-
-	const toggleFavorite = (url: string) => {
-		setFavoritesSet((prev) => {
-			const next = new Set(prev);
-			if (next.has(url)) next.delete(url);
-			else next.add(url);
-			try {
-				localStorage.setItem("sf:favorites", JSON.stringify(Array.from(next)));
-			} catch {}
-			window.dispatchEvent(
-				new CustomEvent("sf:favoritesUpdated", { detail: { favorites: Array.from(next) } }),
-			);
-			return next;
+	const toggleFavorite = (name: string) => {
+		setSettings((prev) => {
+			const next = new Set(prev.FavoriteNames ?? []);
+			if (next.has(name)) next.delete(name);
+			else next.add(name);
+			return { ...prev, FavoriteNames: Array.from(next) };
 		});
 	};
 
