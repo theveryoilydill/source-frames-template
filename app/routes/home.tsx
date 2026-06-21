@@ -17,7 +17,10 @@ export default function Home() {
 
 	const { settings, setSettings } = useSettings();
 
-	const favoritesSet = React.useMemo(() => new Set(settings.FavoriteNames ?? []), [settings.FavoriteNames]);
+	const favoritesSet = React.useMemo(
+		() => new Set(settings.FavoriteNames ?? []),
+		[settings.FavoriteNames],
+	);
 
 	const toggleFavorite = (name: string) => {
 		setSettings((prev) => {
