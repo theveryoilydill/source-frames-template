@@ -21,7 +21,6 @@ export default function Settings() {
 	/*const [query, setQuery] = React.useState("");
 	const [favoritesOnly, setFavoritesOnly] = React.useState(false);
 	const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(new Set());*/
-	
 
 	const { setSettings } = useSettings();
 

@@ -71,7 +71,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 		}
 	}, [settings]);
 
-	return <SettingsContext.Provider value={{ settings, setSettings }}>{children}</SettingsContext.Provider>;
+	return (
+		<SettingsContext.Provider value={{ settings, setSettings }}>
+			{children}
+		</SettingsContext.Provider>
+	);
 }
 
 export function useSettings() {
@@ -80,8 +84,6 @@ export function useSettings() {
 	if (!context) {
 		throw new Error("useSettings must be used inside SettingsProvider");
 	}
-
-	console.log("Settings updated:", context.settings);
 
 	return context;
 }
