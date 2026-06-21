@@ -1,8 +1,14 @@
 import React from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/settings";
-//import { Header } from "~/Header";
-//import { sources } from "~/FramesList/ListFramesList";
+import { useRouteError } from "react-router";
+import { useSettings } from "../context/UserData";
+
+export function ErrorBoundary() {
+	const error = useRouteError();
+
+	return <pre>{error instanceof Error ? error.stack : JSON.stringify(error, null, 2)}</pre>;
+}
 
 export function meta(_args: Route.MetaArgs) {
 	return [{ title: "Settings" }, { name: "description", content: "The settings page" }];
@@ -17,10 +23,10 @@ export default function Settings() {
 	const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(new Set());*/
 	
 
+	const { setSettings } = useSettings();
+
 	const clearFavorites = () => {
-		if (typeof window === "undefined") return;
-		localStorage.removeItem("sf:favorites");
-		window.dispatchEvent(new CustomEvent("sf:favoritesUpdated", { detail: { favorites: [] } }));
+		setSettings((prev) => ({ ...prev, favorites: [] }));
 		setCleared(true);
 	};
 
