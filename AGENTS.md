@@ -7,6 +7,7 @@ This file provides short, actionable instructions for AI coding agents working i
 - **Project type:** React + React Router (server + client), TypeScript, TailwindCSS.
 - **Key scripts:** `npm run dev`, `npm run build`, `npm run start`, `npm run typecheck` (see package.json).
 - **Primary folders:** `app/` (source), `build/` (output), `public/` (static assets).
+- **Prefered package manager** pnpm is prefered because it is more efficient and secure compared to pnpm
 
 ## How to run locally (for agents)
 
