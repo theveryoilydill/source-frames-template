@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: auto-format-${{ github.event.pull_request.number || github.ref }}
+  group: auto-format-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.AUTO_FORMAT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
