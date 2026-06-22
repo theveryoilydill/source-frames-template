@@ -8,15 +8,21 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: auto-format-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   format:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AUTO_FORMAT_TOKEN || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -43,9 +49,11 @@ jobs:
           git add .
 
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No formatting changes to commit"
             exit 0
           fi
 
           git commit -m "chore: auto-format code"
-          git push
+          git push origin "HEAD:${TARGET_BRANCH}"
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}

@@ -36,6 +36,11 @@ jobs:
         run: pnpm lint
         continue-on-error: true
 
+      - name: Format Check
+        id: format
+        run: pnpm fmt:check
+        continue-on-error: true
+
       - name: Type Check
         id: typecheck
         run: pnpm typecheck
@@ -51,6 +56,7 @@ jobs:
           always() &&
           (
             steps.lint.outcome == 'failure' ||
+            steps.format.outcome == 'failure' ||
             steps.typecheck.outcome == 'failure' ||
             steps.build.outcome == 'failure'
           )
