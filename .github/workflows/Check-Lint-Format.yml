@@ -6,17 +6,32 @@ on:
     branches:
       - main
       - develop
+  workflow_run:
+    workflows:
+      - Auto Format
+    types:
+      - completed
 
 permissions:
   contents: read
 
 jobs:
   check:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Checkout formatted branch
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
