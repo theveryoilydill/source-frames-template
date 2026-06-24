@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FrameItem, type SourceData } from "./GridFrameItem";
+import { FrameItem, type SourceData } from "./GridFramesItem";
 import FrameContent from "../FrameContent/FrameContent";
 
 export function FramesList({
@@ -74,11 +74,15 @@ export const sources: SourceData[] = [
 		URL: "https://example.com/source1",
 		description: "A clean starting point for frame content and external references.",
 		category: "Reference",
+		previewImage: "/SourceImages/Example1.png",
+		previewVideo: "/SourceVideos/Source1.mkv",
 	},
 	{
 		name: "Source 2",
 		URL: "https://example.com/source2",
 		description: "Use this slot for a second frame, article, dataset, or project link.",
 		category: "Resource",
+		previewImage: "/SourceImages/Example2.svg",
+		previewVideo: "/SourceVideos/Source2.mkv",
 	},
 ];
