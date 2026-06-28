@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/settings";
 import { useRouteError } from "react-router";
+import { useSettings } from "../context/UserData";
 
 export function ErrorBoundary() {
 	const error = useRouteError();
@@ -20,12 +21,11 @@ export default function Settings() {
 	/*const [query, setQuery] = React.useState("");
 	const [favoritesOnly, setFavoritesOnly] = React.useState(false);
 	const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(new Set());*/
-	
+
+	const { setSettings } = useSettings();
 
 	const clearFavorites = () => {
-		if (typeof window === "undefined") return;
-		localStorage.removeItem("sf:favorites");
-		window.dispatchEvent(new CustomEvent("sf:favoritesUpdated", { detail: { favorites: [] } }));
+		setSettings((prev) => ({ ...prev, favorites: [] }));
 		setCleared(true);
 	};
 

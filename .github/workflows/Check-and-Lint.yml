@@ -1,4 +1,4 @@
-name: Check Lint Format
+name: Check and Lint
 
 on:
   pull_request:
@@ -16,7 +16,10 @@ jobs:
 
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -36,14 +39,9 @@ jobs:
         run: pnpm lint
         continue-on-error: true
 
-      - name: Oxfmt Check
-        id: fmt
-        run: pnpm fmt:check
-        continue-on-error: true
-
       - name: Type Check
         id: typecheck
-        run: pnpm run typecheck
+        run: pnpm typecheck
         continue-on-error: true
 
       - name: React Router Build
@@ -56,7 +54,6 @@ jobs:
           always() &&
           (
             steps.lint.outcome == 'failure' ||
-            steps.fmt.outcome == 'failure' ||
             steps.typecheck.outcome == 'failure' ||
             steps.build.outcome == 'failure'
           )
