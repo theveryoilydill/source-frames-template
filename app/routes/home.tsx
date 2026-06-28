@@ -12,7 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Home() {
-  const [query, setQuery] = React.useState("");
+	const [query, setQuery] = React.useState("");
 	const [favoritesOnly, setFavoritesOnly] = React.useState(false);
 
 	const { settings, setSettings } = useSettings();
