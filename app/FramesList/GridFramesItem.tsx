@@ -57,11 +57,7 @@ function PreviewMedia({
 	previewVideo?: string | string[];
 }) {
 	const sources = useMemo(() => {
-		const list = Array.isArray(previewVideo)
-			? previewVideo
-			: previewVideo
-				? [previewVideo]
-				: [];
+		const list = Array.isArray(previewVideo) ? previewVideo : previewVideo ? [previewVideo] : [];
 
 		return {
 			gif: list.find(isGif),
