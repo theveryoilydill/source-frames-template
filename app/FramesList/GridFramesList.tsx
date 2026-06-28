@@ -74,7 +74,7 @@ export const sources: SourceData[] = [
 		URL: "https://example.com/source1",
 		description: "A clean starting point for frame content and external references.",
 		category: "Reference",
-		previewImage: "/SourceImages/Example1.png",
+		previewImage: "/SourceImages/Example1.webp",
 		previewVideo: "/SourceVideos/Source1.mkv",
 	},
 	{
