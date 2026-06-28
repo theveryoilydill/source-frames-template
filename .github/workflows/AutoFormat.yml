@@ -7,11 +7,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-
-concurrency:
-  group: auto-format-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   format:
     runs-on: ubuntu-latest
