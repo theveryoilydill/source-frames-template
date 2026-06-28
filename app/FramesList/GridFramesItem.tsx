@@ -174,28 +174,16 @@ export function FrameItem({
 						className="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-300"
 					>
 						{isFavorite ? (
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="currentColor"
-								className="h-5 w-5 text-red-500"
-							>
-								<path d="M11.645 20.91l-.007-.003-.007.003C5.6 19.36 2 15.28 2 11.08 2 8.06 4.42 6 7.22 6c1.6 0 3.04.8 3.78 2.01A4.56 4.56 0 0 1 14.78 6c2.8 0 5.22 2.06 5.22 5.08 0 4.2-3.6 8.28-9.355 9.83z" />
+							// Filled
+							// Had to put a direct svg here because the svg doesn't work for some reason and there is fill colors
+							// I temporarily hardcoded red for the heart color, but if we add themes we should change.
+							<svg xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24" stroke-width="1.5" stroke="red" className="size-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
 							</svg>
 						) : (
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
-								strokeWidth={1.5}
-								stroke="currentColor"
-								className="h-5 w-5"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M21 8.25c0 3.03-2.69 6.19-8.01 9.75L12 19.5l-0.99-1.5C5.69 14.44 3 11.28 3 8.25 3 5.28 5.28 3 8.25 3c1.7 0 3.23.86 4.05 2.16A4.26 4.26 0 0 1 16.75 3C19.72 3 22 5.28 22 8.25z"
-								/>
+							// Unfilled
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
 							</svg>
 						)}
 					</button>
