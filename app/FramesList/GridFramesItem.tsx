@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type SourceData = {
 	name: string;
@@ -19,9 +19,13 @@ function getHostname(sourceUrl: string) {
 
 function getFileExtension(sourceUrl: string) {
 	try {
-		return new URL(sourceUrl, "http://localhost").pathname.split(".").pop()?.toLowerCase();
+		const pathname = new URL(sourceUrl, "http://localhost").pathname;
+		const lastDot = pathname.lastIndexOf(".");
+		return lastDot >= 0 ? pathname.slice(lastDot + 1).toLowerCase() : "";
 	} catch {
-		return sourceUrl.split("?")[0]?.split("#")[0]?.split(".").pop()?.toLowerCase();
+		const clean = sourceUrl.split("?")[0]?.split("#")[0] ?? sourceUrl;
+		const lastDot = clean.lastIndexOf(".");
+		return lastDot >= 0 ? clean.slice(lastDot + 1).toLowerCase() : "";
 	}
 }
 
@@ -29,9 +33,20 @@ function getVideoType(sourceUrl: string) {
 	switch (getFileExtension(sourceUrl)) {
 		case "mp4":
 			return "video/mp4";
+		case "webm":
+			return "video/webm";
+		case "ogg":
+		case "ogv":
+			return "video/ogg";
+		case "mov":
+			return "video/quicktime";
 		default:
 			return undefined;
 	}
+}
+
+function isGif(sourceUrl: string) {
+	return getFileExtension(sourceUrl) === "gif";
 }
 
 function PreviewMedia({
@@ -41,78 +56,121 @@ function PreviewMedia({
 	previewImage?: string;
 	previewVideo?: string | string[];
 }) {
-	const previewVideos = Array.isArray(previewVideo)
-		? previewVideo
-		: previewVideo
-			? [previewVideo]
-			: [];
-	const gifPreview = previewVideos.find((sourceUrl) => getFileExtension(sourceUrl) === "gif");
-	const videoPreviews = previewVideos.filter((sourceUrl) => getFileExtension(sourceUrl) !== "gif");
-	const [isAnimatedPreviewReady, setIsAnimatedPreviewReady] = useState(!previewImage);
-	const posterClassName = isAnimatedPreviewReady
-		? "relative z-10 h-full w-full object-cover transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
-		: "relative z-10 h-full w-full object-cover";
+	const sources = useMemo(() => {
+		const list = Array.isArray(previewVideo) ? previewVideo : previewVideo ? [previewVideo] : [];
+
+		return {
+			gif: list.find(isGif),
+			videos: list.filter((sourceUrl) => !isGif(sourceUrl)),
+		};
+	}, [previewVideo]);
+
 	const videoRef = useRef<HTMLVideoElement | null>(null);
+	const [isHovered, setIsHovered] = useState(false);
+	const [isVideoReady, setIsVideoReady] = useState(false);
+
+	const hasVideo = sources.videos.length > 0;
+	const basePreview = previewImage ?? sources.gif;
+
+	useEffect(() => {
+		setIsHovered(false);
+		setIsVideoReady(false);
+	}, [previewImage, previewVideo]);
 
 	const playPreview = useCallback(() => {
-		const v = videoRef.current;
-		if (!v) return;
-		// Attempt to play; ignore promise rejections (e.g., not ready)
-		const p = v.play();
-		if (p && typeof p.then === "function") p.catch(() => {});
-	}, []);
+		const video = videoRef.current;
+		if (!video) return;
 
-	const pausePreview = useCallback(() => {
-		const v = videoRef.current;
-		if (!v) return;
+		// Restart from the beginning so repeated hover feels consistent.
 		try {
-			v.pause();
-			v.currentTime = 0;
+			video.currentTime = 0;
 		} catch {
-			/* ignore */
+			// Ignore if metadata is not ready yet.
+		}
+
+		const promise = video.play();
+		if (promise && typeof promise.then === "function") {
+			promise.catch(() => {
+				// Autoplay can still be blocked in some browsers; ignore silently.
+			});
 		}
 	}, []);
 
-	if (!previewImage && !previewVideos.length) return null;
+	const pausePreview = useCallback(() => {
+		const video = videoRef.current;
+		if (!video) return;
+
+		try {
+			video.pause();
+			video.currentTime = 0;
+		} catch {
+			// Ignore.
+		}
+	}, []);
+
+	useEffect(() => {
+		if (isHovered && isVideoReady) {
+			playPreview();
+		} else {
+			pausePreview();
+		}
+	}, [isHovered, isVideoReady, playPreview, pausePreview]);
+
+	if (!previewImage && !sources.gif && !hasVideo) {
+		return null;
+	}
 
 	return (
 		<div
 			className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800"
-			onMouseEnter={playPreview}
-			onMouseLeave={pausePreview}
-			onFocus={playPreview}
-			onBlur={pausePreview}
-			onPointerEnter={playPreview}
-			onPointerLeave={pausePreview}
 			tabIndex={0}
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+			onFocus={() => setIsHovered(true)}
+			onBlur={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+					setIsHovered(false);
+				}
+			}}
 		>
-			{videoPreviews.length ? (
+			{basePreview ? (
+				<img
+					src={basePreview}
+					alt=""
+					loading="lazy"
+					decoding="async"
+					className="absolute inset-0 h-full w-full object-cover"
+					aria-hidden="true"
+				/>
+			) : (
+				<div
+					className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900"
+					aria-hidden="true"
+				/>
+			)}
+
+			{hasVideo ? (
 				<video
 					ref={videoRef}
-					className="absolute inset-0 h-full w-full object-cover"
+					className={[
+						"absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+						isHovered && isVideoReady ? "opacity-100" : "opacity-0",
+					].join(" ")}
 					poster={previewImage}
 					muted
 					loop
 					playsInline
 					preload="metadata"
 					aria-hidden="true"
-					onCanPlay={() => setIsAnimatedPreviewReady(true)}
+					onCanPlay={() => setIsVideoReady(true)}
+					onLoadedData={() => setIsVideoReady(true)}
+					onError={() => setIsVideoReady(false)}
 				>
-					{videoPreviews.map((sourceUrl) => (
+					{sources.videos.map((sourceUrl) => (
 						<source key={sourceUrl} src={sourceUrl} type={getVideoType(sourceUrl)} />
 					))}
 				</video>
-			) : gifPreview ? (
-				<img
-					src={gifPreview}
-					alt=""
-					className="absolute inset-0 h-full w-full object-cover"
-					aria-hidden="true"
-					onLoad={() => setIsAnimatedPreviewReady(true)}
-				/>
 			) : null}
-
-			{previewImage ? <img src={previewImage} alt="" className={posterClassName} /> : null}
 		</div>
 	);
 }
@@ -145,6 +203,7 @@ export function FrameItem({
 								{source.name}
 							</h2>
 						</div>
+
 						<span className="shrink-0 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:text-gray-300">
 							Frame
 						</span>
@@ -174,36 +233,34 @@ export function FrameItem({
 						className="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-300"
 					>
 						{isFavorite ? (
-							// Filled
-							// Had to put a direct svg here because the svg doesn't work for some reason and there is fill colors
-							// I temporarily hardcoded red for the heart color, but if we add themes we should change.
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								fill="red"
+								fill="currentColor"
 								viewBox="0 0 24 24"
-								stroke-width="1.5"
-								stroke="red"
-								className="size-6"
+								strokeWidth={1.5}
+								stroke="currentColor"
+								className="size-6 text-red-600"
+								aria-hidden="true"
 							>
 								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
+									strokeLinecap="round"
+									strokeLinejoin="round"
 									d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
 								/>
 							</svg>
 						) : (
-							// Unfilled
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
 								viewBox="0 0 24 24"
-								stroke-width="1.5"
+								strokeWidth={1.5}
 								stroke="currentColor"
 								className="size-6"
+								aria-hidden="true"
 							>
 								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
+									strokeLinecap="round"
+									strokeLinejoin="round"
 									d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
 								/>
 							</svg>
