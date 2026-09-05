@@ -1,42 +1,41 @@
 ## Purpose
 
-This file provides short, actionable instructions for AI coding agents working in this repository. Keep it minimal — link to the full docs where appropriate.
+Short, actionable instructions for AI coding agents working in this repository. For project overview and deployment see [README.md](README.md).
 
-## Quick Facts
+## Commands
 
-- **Project type:** React + React Router (server + client), TypeScript, TailwindCSS.
-- **Key scripts:** `npm run dev`, `npm run build`, `npm run start`, `npm run typecheck` (see package.json).
-- **Primary folders:** `app/` (source), `build/` (output), `public/` (static assets).
-- **Prefered package manager** pnpm is prefered because it is more efficient and secure compared to pnpm
+The repo pins `packageManager` (pnpm 11.6.0). Bare `pnpm` may not be on PATH — use corepack. In sandboxed/CI environments, prefix with `CI=true WRANGLER_SEND_METRICS=false` (skips wrangler metrics/telemetry and interactive prompts):
 
-## How to run locally (for agents)
+| Task                   | Command                                         |
+| ---------------------- | ----------------------------------------------- |
+| Install                | `corepack pnpm install`                         |
+| Dev server             | `corepack pnpm dev` (http://localhost:5173)     |
+| Build                  | `corepack pnpm build`                           |
+| Preview (prod-like)    | `corepack pnpm preview`                         |
+| Typecheck              | `corepack pnpm run typecheck`                   |
+| Lint                   | `corepack pnpm lint`                            |
+| Format / verify format | `corepack pnpm fmt` / `corepack pnpm fmt:check` |
+| Deploy (Cloudflare)    | `corepack pnpm run deploy`                      |
 
-- Install: `npm install` (or `pnpm install` if workspace uses pnpm).
-- Dev server: `npm run dev` — uses `react-router dev` with HMR.
-- Build: `npm run build`.
-- Start production-like server: `npm run start` (runs `react-router-serve` on built server bundle).
-- Type check before edits: `npm run typecheck`.
+There is **no `start` script** — do not use `react-router-serve`. The Cloudflare build is a workerd module, not a Node server. Use `vite preview` (`pnpm preview`) or `wrangler dev` instead.
 
-## What matters to an AI agent
+## Layout
 
-- Prefer small, focused edits. Run `npm run typecheck` after code changes to catch type errors.
-- Link rather than duplicate: refer to [README.md](README.md) for general setup and deployment guidance.
-- Keep SSR and client routing in mind: routes live in `app/` and `routes/`, plus `routes.ts` and `react-router.config.ts`.
-- Styling: Tailwind is used — avoid adding global CSS unless necessary; prefer component-scoped styles in `app.css`.
+- `app/routes.ts` — config-based route definitions; route modules in `app/routes/*.tsx`
+- UI components in `app/`: `Header.tsx`, `FramesList/`, `FrameContent/`
+- Launcher data: the `sources` array in `app/data/sources.ts`
+- Worker entry: `workers/app.ts` (Cloudflare Worker serves the built app)
+- Styling: Tailwind CSS v4 utilities + theme tokens in `app/app.css` (CSS-first — no `tailwind.config` file)
+- Typed route helpers are generated per route: import them from `"./+types/<route>"`
 
-## Files to inspect for context
+## Conventions
 
-- [README.md](README.md)
-- [package.json](package.json)
-- [vite.config.ts](vite.config.ts)
-- [react-router.config.ts](react-router.config.ts)
-- `app/`, `routes/`
+- Indentation: tabs (4-wide); formatting is enforced by oxfmt (`pnpm fmt:check` must pass)
+- Linting is enforced by oxlint; `eslint/no-unused-vars` is an error (the `correctness` category is warn)
+- Before finishing any task, run: `pnpm run typecheck`, `pnpm lint`, `pnpm fmt:check`
+- Never edit generated files by hand: `worker-configuration.d.ts` (`wrangler types`), `.react-router/` (`react-router typegen`), `build/`
+- Don't track local/generated artifacts — `.gitignore` already covers them (`.wrangler/`, `*.tsbuildinfo`, `build/`, …)
 
-## Guidance for PRs
+## License
 
-- Run `npm run typecheck` and ensure no TypeScript errors.
-- Keep changes minimal per PR; if adding new conventions, document them in AGENTS.md or README.md and link.
-
-## About the project
-
-Go look in readme.md for more about the project.
+AGPL-3.0 (see [LICENSE](LICENSE))

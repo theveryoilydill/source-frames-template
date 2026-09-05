@@ -13,19 +13,7 @@
   },
 
   "observability": {
-    "enabled": false,
-    "head_sampling_rate": 1,
-    "logs": {
-      "enabled": true,
-      "head_sampling_rate": 1,
-      "persist": true,
-      "invocation_logs": true,
-    },
-    "traces": {
-      "enabled": false,
-      "persist": true,
-      "head_sampling_rate": 1,
-    },
+    "enabled": true,
   },
 
   /**
@@ -43,7 +31,10 @@
    * Static Assets
    * https://developers.cloudflare.com/workers/static-assets/binding/
    */
-  // "assets": {  "directory": "./public/",  "binding": "ASSETS" }
+  // No manual "assets" block is needed: the @cloudflare/vite-plugin emits the real assets
+  // config (pointing at build/client) into build/server/wrangler.json at build time, and
+  // `wrangler deploy` picks it up from there.
+  // https://developers.cloudflare.com/workers/static-assets/binding/
   /**
    * Service Bindings (communicate between multiple Workers)
    * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings

@@ -1,61 +1,40 @@
-import React from "react";
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
+import { ThemeToggle } from "./ThemeToggle";
 
-export function Header({
-	query,
-	setQuery,
-	favoritesOnly,
-	setFavoritesOnly,
-	favoritesCount,
-	totalCount,
-}: {
-	query: string;
-	setQuery: (q: string) => void;
-	favoritesOnly: boolean;
-	setFavoritesOnly: (v: boolean) => void;
-	favoritesCount: number;
-	totalCount: number;
-}) {
-	const viewLabel = favoritesOnly ? `Favorites (${favoritesCount})` : `All (${totalCount})`;
-
+/** Sticky glassy top bar: brand, theme toggle, settings link. */
+export function Header() {
 	return (
-		<header className="sticky top-0 z-40 w-full border-b border-gray-100 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-950">
-			<div className="mx-auto flex max-w-6xl items-center gap-4 sm:gap-6">
-				<div className="flex items-center gap-3">
-					<Link to="/" className="text-lg font-semibold text-gray-900 dark:text-white">
-						<span className="inline-block mr-2 text-blue-600">◧</span>
-						Source Frames
-					</Link>
-				</div>
+		<header className="sticky top-0 z-40 border-b border-hairline bg-page/75 backdrop-blur-md">
+			<nav
+				aria-label="Primary"
+				className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
+			>
+				<Link
+					to="/"
+					className="flex items-center gap-2 font-display text-base font-bold tracking-tight text-ink transition duration-150 hover:opacity-90"
+				>
+					<span aria-hidden className="text-xl leading-none text-accent">
+						◧
+					</span>
+					Source Frames
+				</Link>
 
-				<div className="flex flex-1 items-center">
-					<label className="sr-only">Search sources</label>
-					<input
-						value={query}
-						onChange={(e) => setQuery(e.target.value)}
-						placeholder="Search name or description..."
-						className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white"
-					/>
-				</div>
-
-				<div className="flex items-center gap-3">
-					<button
-						type="button"
-						aria-pressed={favoritesOnly}
-						onClick={() => setFavoritesOnly(!favoritesOnly)}
-						className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-					>
-						{viewLabel}
-					</button>
-
-					<Link
+				<div className="flex items-center gap-2">
+					<ThemeToggle />
+					<NavLink
 						to="/settings"
-						className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300"
+						className={({ isActive }) =>
+							`rounded-lg border px-3 py-1.5 text-sm font-medium transition duration-150 ${
+								isActive
+									? "border-hairline bg-raised text-ink"
+									: "border-transparent text-muted hover:bg-raised hover:text-ink"
+							}`
+						}
 					>
 						Settings
-					</Link>
+					</NavLink>
 				</div>
-			</div>
+			</nav>
 		</header>
 	);
 }
