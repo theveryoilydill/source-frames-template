@@ -144,9 +144,7 @@ export default function Settings() {
 					Back to console
 				</Link>
 
-				<h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-ink">
-					Settings
-				</h1>
+				<h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-ink">Settings</h1>
 				<p className="mt-2 text-sm text-muted">
 					Choose how the console looks and manage data stored in this browser.
 				</p>
@@ -155,15 +153,10 @@ export default function Settings() {
 					aria-labelledby="appearance-heading"
 					className="mt-8 rounded-xl border border-hairline bg-surface p-6"
 				>
-					<h2
-						id="appearance-heading"
-						className="font-display text-lg font-semibold text-ink"
-					>
+					<h2 id="appearance-heading" className="font-display text-lg font-semibold text-ink">
 						Appearance
 					</h2>
-					<p className="mt-1 text-sm text-muted">
-						Pick a theme. System follows your OS setting.
-					</p>
+					<p className="mt-1 text-sm text-muted">Pick a theme. System follows your OS setting.</p>
 
 					<fieldset className="mt-4">
 						<legend className="sr-only">Theme</legend>
@@ -204,8 +197,8 @@ export default function Settings() {
 						Data
 					</h2>
 					<p className="mt-1 text-sm text-muted" role="status">
-						{favoritesCount} {favoritesCount === 1 ? "favorite" : "favorites"} stored
-						locally in this browser.
+						{favoritesCount} {favoritesCount === 1 ? "favorite" : "favorites"} stored locally in
+						this browser.
 					</p>
 
 					<div className="mt-4">

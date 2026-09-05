@@ -74,9 +74,7 @@ export function FrameItem({
 				</h2>
 
 				{source.description ? (
-					<p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">
-						{source.description}
-					</p>
+					<p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{source.description}</p>
 				) : null}
 			</div>
 
