@@ -175,8 +175,7 @@ export default function Home() {
 						</div>
 
 						<p className="mt-4 max-w-xl text-base text-muted sm:text-lg">
-							Open tools, references, and live readouts in framed overlays without
-							leaving the page.
+							Open tools, references, and live readouts in framed overlays without leaving the page.
 						</p>
 
 						<div className="relative mt-8 max-w-xl">

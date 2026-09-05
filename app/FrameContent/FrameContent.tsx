@@ -48,9 +48,7 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 			<div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-hairline bg-page/85 px-3 backdrop-blur-md">
 				<div className="flex min-w-0 items-center gap-2.5">
 					<span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-glow" />
-					<span className="hidden shrink-0 text-xs font-semibold text-muted sm:inline">
-						Live
-					</span>
+					<span className="hidden shrink-0 text-xs font-semibold text-muted sm:inline">Live</span>
 					<span className="truncate text-sm font-medium text-ink">{title ?? url}</span>
 				</div>
 
