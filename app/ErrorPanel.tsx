@@ -24,9 +24,7 @@ export function ErrorPanel({
 				<span aria-hidden className="text-3xl leading-none text-accent">
 					◧
 				</span>
-				<p className="mt-6 font-display text-6xl font-bold tracking-tight text-ink">
-					{code}
-				</p>
+				<p className="mt-6 font-display text-6xl font-bold tracking-tight text-ink">{code}</p>
 				<h1 id="error-title" className="mt-3 font-display text-xl font-semibold text-ink">
 					{title}
 				</h1>

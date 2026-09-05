@@ -5,7 +5,5 @@ export default {
 	ssr: true,
 	splitRouteModules: true,
 	prerender: ["/", "/settings"],
-	future: {
-
-	},
+	future: {},
 } satisfies Config;
