@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { openAboutBlank } from "../utils/aboutBlank";
 import { useFocusTrap } from "../useFocusTrap";
 
 type FrameContentProps = {
@@ -27,7 +26,9 @@ const getFullscreenElement = (): Element | null => {
 };
 
 /**
- * Fullscreen sandboxed frame viewer. Escape closes (via onClose, else
+ * Sandboxed frame viewer with a source-only fullscreen mode: fullscreening
+ * the frame area itself leaves the toolbar (and the rest of the app) out of
+ * the picture, so the source owns the whole screen. Escape closes (via onClose, else
  * history.back()) — but never while the browser is fullscreen, where Escape
  * belongs to the browser first. Body scroll is locked while open; a focus
  * trap keeps keyboard focus inside the dialog — Tab cycles and wraps the
@@ -39,6 +40,9 @@ const getFullscreenElement = (): Element | null => {
 export default function FrameContent({ url, onClose, title }: FrameContentProps) {
 	const closeRef = useRef<HTMLButtonElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	// The frame area (iframe + hint pills + loading backdrop) — the element
+	// that goes fullscreen so only the source fills the screen.
+	const contentRef = useRef<HTMLDivElement>(null);
 	const isClosingRef = useRef(false);
 	const [isClosing, setIsClosing] = useState(false);
 	const [isFullscreen, setIsFullscreen] = useState(false);
@@ -166,23 +170,27 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	);
 
 	const toggleFullscreen = () => {
-		const container = containerRef.current;
-		if (!container) return;
+		// Fullscreen the frame area, not the dialog chrome: the toolbar stays
+		// behind with the rest of the app and the source fills the screen.
+		// Escape belongs to the browser first (it exits fullscreen), and only
+		// closes the viewer on the next press — see the keydown guard above.
+		const content = contentRef.current;
+		if (!content) return;
 		if (getFullscreenElement()) {
 			if (document.exitFullscreen) document.exitFullscreen();
 			else (document as FullscreenDocument).webkitExitFullscreen?.();
-		} else if (container.requestFullscreen) {
-			container.requestFullscreen();
+		} else if (content.requestFullscreen) {
+			content.requestFullscreen();
 		} else {
-			(container as FullscreenElement).webkitRequestFullscreen?.();
+			(content as FullscreenElement).webkitRequestFullscreen?.();
 		}
 	};
 
 	const handlePopOut = () => {
-		// Runs synchronously in the click gesture so the popup is allowed; if
-		// the about:blank tab was blocked, fall back to a direct tab.
-		const opened = openAboutBlank(url, title);
-		if (!opened) window.open(url, "_blank", "noopener,noreferrer");
+		// Runs synchronously inside the click gesture so popup blockers allow
+		// it, and opens the real URL: "Pop it out" is a plain new-tab handoff
+		// to the source itself, not another embedded shell.
+		window.open(url, "_blank", "noopener,noreferrer");
 	};
 
 	const reloadFrame = () => setReloadKey((k) => k + 1);
@@ -352,8 +360,8 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 				</div>
 			</div>
 
-			<div className="relative min-h-0 flex-1">
-				{iframeHintVisible ? (
+			<div ref={contentRef} className="relative min-h-0 flex-1">
+				{iframeHintVisible && !isFullscreen ? (
 					<p
 						role="status"
 						onAnimationEnd={(e) => {

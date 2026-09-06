@@ -61,13 +61,13 @@ export const sources: SourceData[] = [
 		URL: "https://example.com",
 		description: "The canonical placeholder domain, handy for checking how link kinds behave.",
 		tags: ["General", "Testing"],
-		kind: "link",
+		kind: "iframe",
 	},
 	{
 		name: "MDN Web Docs",
 		URL: "https://developer.mozilla.org",
 		description: "Mozilla's reference for HTML, CSS, and JavaScript, the web platform manual.",
 		tags: ["Reference", "Development", "Docs"],
-		kind: "link",
+		kind: "iframe",
 	},
 ];

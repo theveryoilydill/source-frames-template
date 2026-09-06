@@ -4,28 +4,30 @@
  * The smallest sibling of the sf:* data modules: a single localStorage key
  * read and written only by the launcher route (home.tsx), so unlike
  * favorites/recents there is no CustomEvent — nothing else needs to react
- * to a change. Invalid or missing values always fall back to "default".
+ * to a change. Invalid, missing, or legacy values always fall back to
+ * "alpha" — since the built-in default order was removed, A–Z IS the
+ * launcher default.
  */
 
-/** "default" = built-ins then custom frames; "alpha" = name A–Z; "opened" = most-opened first. */
-export type SortPref = "default" | "alpha" | "opened";
+/** "alpha" = name A–Z (default); "zeta" = Z–A; "added" = newest added first; "opened" = most-opened first. */
+export type SortPref = "alpha" | "zeta" | "added" | "opened";
 
 export const SORT_KEY = "sf:sort";
 
-const SORT_PREFS: readonly SortPref[] = ["default", "alpha", "opened"];
+const SORT_PREFS: readonly SortPref[] = ["alpha", "zeta", "added", "opened"];
 
 /**
  * Reads the stored sort preference — only the exact known values are
- * accepted; anything else (junk, legacy, corrupted storage) reads as
- * "default". SSR-safe: returns "default" outside the browser.
+ * accepted; anything else (junk, the retired "default" value, corrupted
+ * storage) reads as "alpha". SSR-safe: returns "alpha" outside the browser.
  */
 export function readSortPref(): SortPref {
-	if (typeof window === "undefined") return "default";
+	if (typeof window === "undefined") return "alpha";
 	try {
 		const raw = localStorage.getItem(SORT_KEY);
-		return raw === "alpha" || raw === "opened" ? raw : "default";
+		return raw === "zeta" || raw === "added" || raw === "opened" ? raw : "alpha";
 	} catch {
-		return "default";
+		return "alpha";
 	}
 }
 
@@ -35,7 +37,7 @@ export function readSortPref(): SortPref {
  * are non-fatal — the preference then simply stays session-only.
  */
 export function writeSortPref(pref: SortPref): SortPref {
-	if (!SORT_PREFS.includes(pref)) return "default";
+	if (!SORT_PREFS.includes(pref)) return "alpha";
 	try {
 		localStorage.setItem(SORT_KEY, pref);
 	} catch {

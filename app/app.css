@@ -194,6 +194,38 @@
 	color-scheme: dark;
 }
 
+/*
+ * Theme cross-fade: while <html> carries .theme-transitioning (added for one
+ * brief pass by applyTheme in theme.ts), every element eases its paint colors
+ * — surfaces, hairlines, text — so the dark↔light flip glides instead of
+ * snapping white. Transform/hover transitions are deliberately NOT included:
+ * they keep their own faster timings while the fade runs.
+ */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+	transition:
+		background-color 260ms ease,
+		border-color 260ms ease,
+		color 260ms ease,
+		fill 260ms ease,
+		stroke 260ms ease,
+		box-shadow 260ms ease,
+		outline-color 260ms ease !important;
+}
+
+/* The blanket reduced-motion override at the bottom of this file would lose
+   to the higher-specificity rule above, so re-assert it for the fade. */
+@media (prefers-reduced-motion: reduce) {
+	html.theme-transitioning,
+	html.theme-transitioning *,
+	html.theme-transitioning *::before,
+	html.theme-transitioning *::after {
+		transition-duration: 0.01ms !important;
+	}
+}
+
 /* Accent focus ring everywhere a control does not provide its own. */
 :focus-visible {
 	outline: 2px solid var(--sf-accent);
