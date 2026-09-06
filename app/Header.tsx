@@ -1,10 +1,27 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router";
+import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
-/** Sticky glassy top bar: brand, theme toggle, settings link. */
+/** Sticky glassy top bar: brand, theme toggle, settings link. The bottom
+ *  hairline warms to a faint accent tint once the page is scrolled, a quiet
+ *  elevation cue that never changes the bar's size. */
 export function Header() {
+	const [scrolled, setScrolled] = useState(false);
+	useEffect(() => {
+		const onScroll = () => setScrolled(window.scrollY > 8);
+		// Sync once on mount (scroll restoration can land mid-page).
+		onScroll();
+		window.addEventListener("scroll", onScroll, { passive: true });
+		return () => window.removeEventListener("scroll", onScroll);
+	}, []);
+
 	return (
-		<header className="sticky top-0 z-40 border-b border-hairline bg-page/75 backdrop-blur-md">
+		<header
+			className={`sticky top-0 z-40 border-b bg-page/80 backdrop-blur-md transition-colors duration-200 ${
+				scrolled ? "border-accent/15" : "border-hairline"
+			}`}
+		>
 			<nav
 				aria-label="Primary"
 				className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
@@ -13,9 +30,7 @@ export function Header() {
 					to="/"
 					className="flex items-center gap-2 font-display text-base font-bold tracking-tight text-ink transition duration-150 hover:opacity-90"
 				>
-					<span aria-hidden className="text-xl leading-none text-accent">
-						◧
-					</span>
+					<Logo className="h-6 w-6 shrink-0 text-accent" />
 					Source Frames
 				</Link>
 

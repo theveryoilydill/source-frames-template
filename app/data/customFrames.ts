@@ -1,0 +1,196 @@
+/**
+ * User-defined custom frames, managed from Settings and stored locally.
+ *
+ * Custom frames live only in this browser — a localStorage array under
+ * "sf:customFrames", kept in sync across components via the
+ * "sf:customFramesUpdated" CustomEvent (the same pattern as favorites and
+ * recents). They are merged into the launcher by the home route, alongside
+ * the built-in sources.
+ */
+
+import { removeRecentByUrl } from "./recent";
+
+export type CustomFrame = {
+	id: string; // generated at add time
+	name: string;
+	URL: string;
+	description?: string;
+	tags: string[]; // may be empty
+	kind: "iframe" | "link";
+};
+
+export const CUSTOM_FRAMES_KEY = "sf:customFrames";
+export const CUSTOM_FRAMES_EVENT = "sf:customFramesUpdated";
+
+/** Normalizes one stored entry; returns null when it is unusable. */
+function toCustomFrame(record: Record<string, unknown>): CustomFrame | null {
+	if (
+		typeof record.id !== "string" ||
+		typeof record.name !== "string" ||
+		typeof record.URL !== "string"
+	) {
+		return null;
+	}
+	if (record.kind !== undefined && record.kind !== "iframe" && record.kind !== "link") return null;
+	return {
+		id: record.id,
+		name: record.name,
+		URL: record.URL,
+		...(typeof record.description === "string" && record.description
+			? { description: record.description }
+			: {}),
+		tags: Array.isArray(record.tags)
+			? record.tags.filter((tag): tag is string => typeof tag === "string")
+			: [],
+		kind: record.kind === "link" ? "link" : "iframe",
+	};
+}
+
+export function readCustomFrames(): CustomFrame[] {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = localStorage.getItem(CUSTOM_FRAMES_KEY);
+		const parsed: unknown = raw ? JSON.parse(raw) : [];
+		if (!Array.isArray(parsed)) return [];
+		const frames: CustomFrame[] = [];
+		for (const entry of parsed) {
+			if (!entry || typeof entry !== "object") continue;
+			const frame = toCustomFrame(entry as Record<string, unknown>);
+			if (frame) frames.push(frame);
+		}
+		return frames;
+	} catch {
+		return [];
+	}
+}
+
+function persist(frames: CustomFrame[]): void {
+	try {
+		localStorage.setItem(CUSTOM_FRAMES_KEY, JSON.stringify(frames));
+	} catch {
+		/* storage unavailable — custom frames stay session-only */
+	}
+	window.dispatchEvent(new CustomEvent(CUSTOM_FRAMES_EVENT, { detail: { frames } }));
+}
+
+function nextFrameId(): string {
+	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+		return crypto.randomUUID();
+	}
+	return `cf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Adds (or replaces, by URL) a custom frame and returns the new list. */
+export function addCustomFrame(input: {
+	name: string;
+	URL: string;
+	description?: string;
+	tags: string[];
+	kind: "iframe" | "link";
+}): CustomFrame[] {
+	const frames = readCustomFrames();
+	const name = input.name.trim();
+	const url = input.URL.trim();
+	if (!name || !/^https?:\/\//i.test(url)) return frames;
+	const description = input.description?.trim() || undefined;
+	const tags = input.tags
+		.map((tag) => tag.trim())
+		.filter(Boolean)
+		.filter((tag, index, all) => all.indexOf(tag) === index);
+	const frame: CustomFrame = {
+		id: nextFrameId(),
+		name,
+		URL: url,
+		...(description ? { description } : {}),
+		tags,
+		kind: input.kind === "link" ? "link" : "iframe",
+	};
+	const existingIndex = frames.findIndex((entry) => entry.URL === url);
+	const next =
+		existingIndex === -1
+			? [...frames, frame]
+			: frames.map((entry, index) => (index === existingIndex ? frame : entry));
+	persist(next);
+	return next;
+}
+
+/**
+ * Validates every entry exactly like readCustomFrames does (invalid ones are
+ * skipped, not fatal), replaces the whole stored list, persists, and
+ * broadcasts the update. Used by the Settings data import.
+ */
+export function writeCustomFrames(frames: CustomFrame[]): CustomFrame[] {
+	const validated: CustomFrame[] = [];
+	for (const entry of frames) {
+		if (!entry || typeof entry !== "object") continue;
+		const frame = toCustomFrame(entry as Record<string, unknown>);
+		if (frame) validated.push(frame);
+	}
+	persist(validated);
+	return validated;
+}
+
+/**
+ * Updates the custom frame with the given id and returns the new list.
+ * Unspecified fields keep their current values; a null (or empty)
+ * description removes it. The resulting entry is validated and normalized
+ * exactly like addCustomFrame (non-empty name, http(s) URL, trimmed
+ * values, deduped tags) - on invalid input or an unknown id the list is
+ * returned unchanged. The frame keeps its original id and list position.
+ */
+export function updateCustomFrame(
+	id: string,
+	changes: {
+		name?: string;
+		URL?: string;
+		description?: string | null;
+		tags?: string[];
+		kind?: "iframe" | "link";
+	},
+): CustomFrame[] {
+	const frames = readCustomFrames();
+	const index = frames.findIndex((entry) => entry.id === id);
+	if (index === -1) return frames;
+	const current = frames[index];
+	const name = (changes.name ?? current.name).trim();
+	const url = (changes.URL ?? current.URL).trim();
+	if (!name || !/^https?:\/\//i.test(url)) return frames;
+	const rawDescription =
+		changes.description === undefined ? current.description : changes.description;
+	const description = typeof rawDescription === "string" ? rawDescription.trim() || null : null;
+	const tags = (changes.tags ?? current.tags)
+		.map((tag) => tag.trim())
+		.filter(Boolean)
+		.filter((tag, position, all) => all.indexOf(tag) === position);
+	const kind = changes.kind === "iframe" || changes.kind === "link" ? changes.kind : current.kind;
+	// Reuse the stored-entry normalizer so the persisted shape always
+	// matches what readCustomFrames would return.
+	const frame = toCustomFrame({
+		id: current.id,
+		name,
+		URL: url,
+		...(description ? { description } : {}),
+		tags,
+		kind,
+	});
+	if (!frame) return frames;
+	const next = [...frames];
+	next[index] = frame;
+	persist(next);
+	return next;
+}
+
+/**
+ * Removes the custom frame with the given id and returns the new list. Any
+ * recent entries pointing at the deleted frame's URL are pruned too, so the
+ * launcher never shows an orphan chip for a frame that no longer exists.
+ */
+export function deleteCustomFrame(id: string): CustomFrame[] {
+	const frames = readCustomFrames();
+	const deleted = frames.find((entry) => entry.id === id);
+	const next = frames.filter((entry) => entry.id !== id);
+	if (next.length === frames.length) return frames;
+	persist(next);
+	if (deleted) removeRecentByUrl(deleted.URL);
+	return next;
+}
