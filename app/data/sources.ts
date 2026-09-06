@@ -17,16 +17,27 @@ export type SourceData = {
 	name: string;
 	URL: string;
 	description?: string;
+	/** Legacy single-category field, kept only for backward compatibility. */
 	category?: string;
+	/** Modular multi-tag labels used for filtering and card chips. */
+	tags?: string[];
 	kind?: "iframe" | "link";
 };
+
+/**
+ * A source's tags: the modular `tags` list when present, otherwise the legacy
+ * `category` as a one-tag list, otherwise a generic "General" tag.
+ */
+export function getSourceTags(source: SourceData): string[] {
+	return source.tags ?? (source.category ? [source.category] : ["General"]);
+}
 
 export const sources: SourceData[] = [
 	{
 		name: "Wikipedia: Mission control center",
 		URL: "https://en.wikipedia.org/wiki/Mission_control_center",
 		description: "How mission control rooms run launches and flights, from the encyclopedia.",
-		category: "Reference",
+		tags: ["Reference", "Space", "Reading"],
 		kind: "iframe",
 	},
 	{
@@ -34,7 +45,7 @@ export const sources: SourceData[] = [
 		URL: "https://wttr.in/London",
 		description:
 			"Live weather readout for London from the wttr.in service, rendered like a terminal panel.",
-		category: "Weather",
+		tags: ["Weather", "Terminal", "Live data"],
 		kind: "iframe",
 	},
 	{
@@ -42,28 +53,21 @@ export const sources: SourceData[] = [
 		URL: "https://excalidraw.com",
 		description:
 			"Virtual whiteboard for sketching hand-drawn diagrams, flows, and architecture notes.",
-		category: "Whiteboard",
+		tags: ["Whiteboard", "Design", "Drawing"],
 		kind: "iframe",
 	},
 	{
 		name: "Example.com",
 		URL: "https://example.com",
 		description: "The canonical placeholder domain, handy for checking how link kinds behave.",
-		category: "General",
-		kind: "link",
-	},
-	{
-		name: "Source Frames on GitHub",
-		URL: "https://github.com/theveryoilydill/source-frames-template",
-		description: "This template's source code, issues, and documentation on GitHub.",
-		category: "Development",
+		tags: ["General", "Testing"],
 		kind: "link",
 	},
 	{
 		name: "MDN Web Docs",
 		URL: "https://developer.mozilla.org",
 		description: "Mozilla's reference for HTML, CSS, and JavaScript, the web platform manual.",
-		category: "Development",
+		tags: ["Reference", "Development", "Docs"],
 		kind: "link",
 	},
 ];

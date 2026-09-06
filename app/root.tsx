@@ -10,10 +10,13 @@ import type { ReactNode } from "react";
 
 import type { Route } from "./+types/root";
 import ErrorPanel from "./ErrorPanel";
+import ToastRegion from "./Toast";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
+	{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
 	{ rel: "icon", href: "/favicon.ico" },
+	{ rel: "manifest", href: "/manifest.webmanifest" },
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
 	{
 		rel: "preconnect",
@@ -39,12 +42,15 @@ export function Layout({ children }: { children: ReactNode }) {
 			<head>
 				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
+				<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0e14" />
 				<script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
 				<Meta />
 				<Links />
 			</head>
 			<body className="bg-page font-sans text-ink antialiased">
 				{children}
+				<ToastRegion />
 				<ScrollRestoration />
 				<Scripts />
 			</body>

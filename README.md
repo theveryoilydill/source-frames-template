@@ -1,30 +1,20 @@
 # Source Frames
 
-A [React Router 7](https://reactrouter.com/) framework-mode starter for a link/frame launcher: a customizable array of "frames" (sources) that open in an in-app sandboxed iframe overlay — or as direct links — with search, category filter chips, and localStorage favorites.
-
-## Stack
-
-- React 19 + React Router 7.17 (framework mode, browser-history routing — not a hash router)
-- Vite 8 + `@cloudflare/vite-plugin` (workerd output)
-- Tailwind CSS v4 (CSS-first config in `app/app.css` — no `tailwind.config` file)
-- TypeScript, oxlint + oxfmt
-- Cloudflare Workers + wrangler (the app is served by the Worker in `workers/app.ts`)
-
-Routing uses `ssr: true` and prerenders `/` and `/settings` to static HTML. The Worker serves those pages and handles everything else with SSR fallback. Hosting `build/client/` elsewhere as pure static files loses that fallback (only the two prerendered paths work).
+Frames to a bunch of sources.
 
 ## Getting started
 
 Requires Node >= 20 and pnpm (the repo pins `packageManager`, so use corepack):
 
 ```sh
-corepack pnpm install
-corepack pnpm dev        # http://localhost:5173
-corepack pnpm build
-corepack pnpm preview    # builds, then runs `vite preview`
-corepack pnpm typecheck  # wrangler types && react-router typegen && tsc -b
-corepack pnpm lint       # oxlint
-corepack pnpm fmt        # oxfmt (use fmt:check to verify only)
-corepack pnpm run deploy # Cloudflare Workers: react-router build && wrangler deploy
+pnpm install
+pnpm dev        # http://localhost:5173
+pnpm build
+pnpm preview    # builds, then runs `vite preview`
+pnpm typecheck  # wrangler types && react-router typegen && tsc -b
+pnpm lint       # oxlint
+pnpm fmt        # oxfmt (use fmt:check to verify only)
+pnpm run deploy # Cloudflare Workers: react-router build && wrangler deploy
 ```
 
 There is no `start` script: the Cloudflare build is a workerd module, not a Node server, so `react-router-serve` does not apply. For a production-like local run use `pnpm preview` or `wrangler dev`.
