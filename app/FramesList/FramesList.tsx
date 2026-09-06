@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import FrameItem from "./FrameItem";
 import type { SourceData } from "../data/sources";
 import type { RecentEntry } from "../data/recent";
@@ -87,6 +87,42 @@ export function FramesList({
 		onFrameOpened?.(url, title);
 	};
 
+	// Last-painted card positions (per URL) — the "F" of the FLIP reorder
+	// animation: each commit records where cards ended up; the next commit
+	// animates moved cards from that old spot to the new one (First-Last-
+	// Invert-Play) instead of letting them teleport.
+	const gridRef = useRef<HTMLDivElement>(null);
+	const prevRectsRef = useRef<Map<string, { left: number; top: number }>>(new Map());
+
+	// Runs whenever the card order changes — favorites drag/Alt+Arrow
+	// reordering, a sort switch, or filtering. New cards have no previous
+	// position and simply enter; existing ones glide. Reduced-motion users
+	// get the jump straight to the final layout.
+	const orderSignature = filtered.map((source) => source.URL).join("\n");
+	useLayoutEffect(() => {
+		const grid = gridRef.current;
+		if (!grid) return;
+		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const prevRects = prevRectsRef.current;
+		const nextRects = new Map<string, { left: number; top: number }>();
+		for (const el of Array.from(grid.querySelectorAll<HTMLElement>("[data-sf-url]"))) {
+			const url = el.dataset.sfUrl;
+			if (!url) continue;
+			const rect = el.getBoundingClientRect();
+			nextRects.set(url, { left: rect.left, top: rect.top });
+			const prev = prevRects.get(url);
+			if (!prev || reducedMotion) continue;
+			const dx = prev.left - rect.left;
+			const dy = prev.top - rect.top;
+			if (dx === 0 && dy === 0) continue;
+			el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], {
+				duration: 260,
+				easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+			});
+		}
+		prevRectsRef.current = nextRects;
+	}, [orderSignature]);
+
 	// Empty-state copy that names the active filters instead of guessing.
 	// query/selectedTags are optional echoes; when the route does not
 	// pass them, the fallback line stays accurate for any combination.
@@ -138,7 +174,7 @@ export function FramesList({
 					) : null}
 				</div>
 			) : (
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-sf-grid>
+				<div ref={gridRef} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-sf-grid>
 					{filtered.map((source, i) => (
 						<FrameItem
 							key={source.URL}

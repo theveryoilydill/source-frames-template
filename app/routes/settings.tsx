@@ -28,7 +28,7 @@ import {
 import { OPEN_COUNTS_EVENT, clearOpenCounts, readOpenCounts } from "../data/openCounts";
 import { sources } from "../data/sources";
 
-const APP_VERSION = "2.9.0";
+const APP_VERSION = "2.10.0";
 
 export function meta(_args: Route.MetaArgs) {
 	const title = "Settings — Source Frames";
@@ -294,9 +294,10 @@ export default function Settings() {
 	};
 
 	const clearFavorites = () => {
-		localStorage.removeItem("sf:favorites");
-		window.dispatchEvent(new CustomEvent("sf:favoritesUpdated", { detail: { favorites: [] } }));
-		setFavoritesCount(0);
+		// Persist an explicit empty list (instead of removing the key): an
+		// absent key is what triggers the legacy-favorites migration, and a
+		// list the user deliberately cleared must never silently come back.
+		setFavoritesCount(writeFavorites([]).length);
 		setConfirmingClear(false);
 	};
 
