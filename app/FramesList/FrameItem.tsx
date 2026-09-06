@@ -451,6 +451,7 @@ export function FrameItem({
 			ref={cardRef}
 			draggable={reorderEnabled}
 			data-sf-card={orderIndex}
+			data-sf-url={source.URL}
 			data-sf-touch-dragging={touchLifted ? "true" : undefined}
 			data-sf-drop-target={touchTarget ? "true" : undefined}
 			onDragStart={(e) => {

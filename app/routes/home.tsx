@@ -177,8 +177,10 @@ export default function Home() {
 	const [recent, setRecent] = useState<RecentEntry[]>([]);
 	const [customFrames, setCustomFrames] = useState<CustomFrame[]>([]);
 	// Launcher sort for the normal (non-favorites) view; persisted via
-	// app/data/sortPref.ts and restored on mount below.
-	const [sort, setSort] = useState<SortPref>("default");
+	// app/data/sortPref.ts and restored on mount below. A–Z is the default:
+	// the built-in "default" order was retired in favor of always sorting
+	// alphabetically unless another order is picked.
+	const [sort, setSort] = useState<SortPref>("alpha");
 	// Open counts power the "Most opened" sort — read + event-synced like
 	// the other data modules; frames never opened count as 0.
 	const [openCounts, setOpenCounts] = useState<Record<string, number>>({});
@@ -496,6 +498,16 @@ export default function Home() {
 		return [...sources, ...merged];
 	}, [customFrames]);
 
+	// When each custom frame was added (epoch ms), for the "Date added"
+	// sort. Built-ins are intentionally absent (they read as "oldest").
+	const addedAt = useMemo(() => {
+		const map = new Map<string, number>();
+		for (const frame of customFrames) {
+			if (typeof frame.addedAt === "number") map.set(frame.URL, frame.addedAt);
+		}
+		return map;
+	}, [customFrames]);
+
 	// Sorted union of every tag across all sources — the menu's option list.
 	const allTags = useMemo(() => {
 		const set = new Set<string>();
@@ -552,6 +564,20 @@ export default function Home() {
 			// Case-insensitive by name; equal names keep the default order
 			// (Array#sort is stable in every supported engine).
 			list.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+		} else if (sort === "zeta") {
+			// Mirror of "alpha" — same case-insensitive comparison, reversed.
+			list.sort((a, b) => b.name.toLowerCase().localeCompare(a.name.toLowerCase()));
+		} else if (sort === "added") {
+			// Newest additions first. Custom frames carry a real addedAt
+			// timestamp; built-ins have none and count as the oldest (0), so
+			// they keep their built-in order after every user-added frame.
+			// Ties fall back to the built-ins-then-custom order.
+			const defaultRank = new Map(allSources.map((source, i) => [source.URL, i]));
+			list.sort(
+				(a, b) =>
+					(addedAt.get(b.URL) ?? 0) - (addedAt.get(a.URL) ?? 0) ||
+					(defaultRank.get(a.URL) ?? 0) - (defaultRank.get(b.URL) ?? 0),
+			);
 		} else if (sort === "opened") {
 			// Most-opened first (a frame never opened counts as 0); ties
 			// fall back to the default built-ins-then-custom order.
@@ -563,7 +589,17 @@ export default function Home() {
 			);
 		}
 		return list;
-	}, [query, selectedTags, favoritesOnly, favoritesSet, favorites, allSources, sort, openCounts]);
+	}, [
+		query,
+		selectedTags,
+		favoritesOnly,
+		favoritesSet,
+		favorites,
+		allSources,
+		sort,
+		openCounts,
+		addedAt,
+	]);
 
 	const toggleFavorite = (url: string) => {
 		setFavorites(toggleFavoriteUrl(url));
@@ -802,8 +838,9 @@ export default function Home() {
 									title={favoritesOnly ? "Favorites keep your saved order" : undefined}
 									className="cursor-pointer appearance-none bg-transparent pr-1 text-sm text-ink focus:outline-none disabled:cursor-not-allowed"
 								>
-									<option value="default">Default order</option>
 									<option value="alpha">A–Z</option>
+									<option value="zeta">Z–A</option>
+									<option value="added">Date added</option>
 									<option value="opened">Most opened</option>
 								</select>
 								<span aria-hidden className="pointer-events-none -ml-0.5 text-muted">

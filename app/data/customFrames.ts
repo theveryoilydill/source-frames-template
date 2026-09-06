@@ -17,6 +17,8 @@ export type CustomFrame = {
 	description?: string;
 	tags: string[]; // may be empty
 	kind: "iframe" | "link";
+	/** Epoch ms when the frame was added — powers the "Date added" sort. */
+	addedAt?: number;
 };
 
 export const CUSTOM_FRAMES_KEY = "sf:customFrames";
@@ -42,6 +44,9 @@ function toCustomFrame(record: Record<string, unknown>): CustomFrame | null {
 		tags: Array.isArray(record.tags)
 			? record.tags.filter((tag): tag is string => typeof tag === "string")
 			: [],
+		...(typeof record.addedAt === "number" && Number.isFinite(record.addedAt)
+			? { addedAt: record.addedAt }
+			: {}),
 		kind: record.kind === "link" ? "link" : "iframe",
 	};
 }
@@ -101,6 +106,7 @@ export function addCustomFrame(input: {
 		id: nextFrameId(),
 		name,
 		URL: url,
+		addedAt: Date.now(),
 		...(description ? { description } : {}),
 		tags,
 		kind: input.kind === "link" ? "link" : "iframe",
@@ -172,6 +178,8 @@ export function updateCustomFrame(
 		...(description ? { description } : {}),
 		tags,
 		kind,
+		// Edits never re-date the frame — "Date added" stays the add time.
+		...(current.addedAt === undefined ? {} : { addedAt: current.addedAt }),
 	});
 	if (!frame) return frames;
 	const next = [...frames];
