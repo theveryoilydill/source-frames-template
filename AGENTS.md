@@ -3,13 +3,13 @@
 - Always use the claude design skill here called frontend-design (get it here: npx skills add https://github.com/anthropics/skills --skill frontend-design).
 - Get the claude skills through: npx skills add anthropics/skills
 - For GLM on z.ai (if you are glm, assume you are on z.ai if you are some generic user on debian with no root)
-- Your frontend skill is the only skill that shows the side panel and other ui stuff for me to get actual stuff, run the setup stuff there, but don't follow anything in there because the claude design skill is better
-- Always run the cron job for review agents.
-- Use as many subagents as you need because the website has unlimited
-- Make a .zip and a git changes file thing with an incrementing number as "all files in this task" so I can get it
-- Always use pnpm
-- Always delete useless traces like screenshots from the browser or logs when you are done. Just delete anything that is not needed. Chache from stuff like pnpm can stay.
-- Always pull the latest version of the repo before doing anything and finishing
+	- Your frontend skill is the only skill that shows the side panel and other ui stuff for me to get actual stuff, run the setup stuff there, but don't follow anything in there because the claude design skill is better
+	- Always run the cron job for review agents.
+	- Use as many subagents as you need because the website has unlimited
+	- Make a .zip and a git changes file thing with an incrementing number as "all files in this task" so I can get it
+	- Always use pnpm
+	- Always delete useless traces like screenshots from the browser or logs when you are done. Just delete anything that is not needed. Chache from stuff like pnpm can stay.
+	- Always pull the latest version of the repo before doing anything and finishing
 - Always start from the develop branch, the main branch is just for deploying
 
 ## Purpose
