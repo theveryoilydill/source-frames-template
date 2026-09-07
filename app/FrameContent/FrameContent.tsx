@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../useFocusTrap";
+import { openAboutBlank } from "../utils/aboutBlank";
 
 type FrameContentProps = {
 	url: string;
@@ -187,9 +188,19 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	};
 
 	const handlePopOut = () => {
-		// Runs synchronously inside the click gesture so popup blockers allow
-		// it, and opens the real URL: "Pop it out" is a plain new-tab handoff
-		// to the source itself, not another embedded shell.
+		// Navbar "Open in new tab": open a blank tab synchronously inside the
+		// click gesture (that is what keeps popup blockers from swallowing
+		// it), then populate the tab with the cloaked source shell. If the
+		// browser still blocked the popup, fall back to a plain new-tab
+		// handoff so the source always opens somewhere.
+		if (!openAboutBlank(url, title)) {
+			window.open(url, "_blank", "noopener,noreferrer");
+		}
+	};
+
+	const handleHintPopOut = () => {
+		// The slow-embed pill's "Pop it out" suggestion is a direct handoff:
+		// open a new tab at the source URL itself, no cloak in between.
 		window.open(url, "_blank", "noopener,noreferrer");
 	};
 
@@ -400,7 +411,7 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 						{canPopOut ? (
 							<button
 								type="button"
-								onClick={handlePopOut}
+								onClick={handleHintPopOut}
 								className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-white transition duration-150 hover:opacity-90 active:scale-[0.98]"
 							>
 								Pop it out
