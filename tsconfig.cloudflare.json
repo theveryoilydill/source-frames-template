@@ -1,5 +1,4 @@
 {
-	"extends": "./tsconfig.json",
 	"include": [
 		".react-router/types/**/*",
 		"app/**/*",
@@ -21,7 +20,10 @@
 		"paths": {
 			"~/*": ["./app/*"]
 		},
+		"verbatimModuleSyntax": true,
 		"esModuleInterop": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"noEmit": true
 	}
 }

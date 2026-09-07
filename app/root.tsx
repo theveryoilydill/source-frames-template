@@ -6,12 +6,17 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from "react-router";
+import type { ReactNode } from "react";
 
 import type { Route } from "./+types/root";
+import ErrorPanel from "./ErrorPanel";
+import ToastRegion from "./Toast";
 import "./app.css";
-import { SettingsProvider } from "./context/UserData";
 
 export const links: Route.LinksFunction = () => [
+	{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+	{ rel: "icon", href: "/favicon.ico" },
+	{ rel: "manifest", href: "/manifest.webmanifest" },
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
 	{
 		rel: "preconnect",
@@ -20,21 +25,32 @@ export const links: Route.LinksFunction = () => [
 	},
 	{
 		rel: "stylesheet",
-		href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+		href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@600;700&display=swap",
 	},
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+/**
+ * Theme bootstrap — runs before first paint (no FOUC).
+ * Reads "sf:theme" ("light" | "dark" | absent = follow the system), toggles
+ * the `dark` class on <html>, and sets style.colorScheme accordingly.
+ */
+const themeInitScript = `(function(){try{var t=localStorage.getItem("sf:theme");var d=t?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";}catch(e){}})();`;
+
+export function Layout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="en">
 			<head>
 				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
+				<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0e14" />
+				<script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
 				<Meta />
 				<Links />
 			</head>
-			<body>
+			<body className="bg-page font-sans text-ink antialiased">
 				{children}
+				<ToastRegion />
 				<ScrollRestoration />
 				<Scripts />
 			</body>
@@ -43,36 +59,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-	return (
-		<SettingsProvider>
-			<Outlet />
-		</SettingsProvider>
-	);
+	return <Outlet />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-	let message = "Oops!";
+	let code = "ERR";
+	let title = "Something went wrong";
 	let details = "An unexpected error occurred.";
 	let stack: string | undefined;
 
 	if (isRouteErrorResponse(error)) {
-		message = error.status === 404 ? "404" : "Error";
+		code = String(error.status);
+		title = error.status === 404 ? "Page not found" : "Request failed";
 		details =
-			error.status === 404 ? "The requested page could not be found." : error.statusText || details;
+			error.status === 404
+				? "Nothing lives at this address. Check the URL, or return to the console."
+				: error.statusText || details;
 	} else if (import.meta.env.DEV && error && error instanceof Error) {
 		details = error.message;
 		stack = error.stack;
 	}
 
-	return (
-		<main className="pt-16 p-4 container mx-auto">
-			<h1>{message}</h1>
-			<p>{details}</p>
-			{stack && (
-				<pre className="w-full p-4 overflow-x-auto">
-					<code>{stack}</code>
-				</pre>
-			)}
-		</main>
-	);
+	return <ErrorPanel code={code} title={title} details={details} stack={stack} />;
 }

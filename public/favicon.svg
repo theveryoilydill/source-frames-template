@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+	<!--
+		Source Frames favicon — viewfinder corner brackets framing a
+		"half-exposed" inner frame. Transparent background; colors follow
+		the OS color scheme (light accent / dark accent-text tokens).
+	-->
+	<style>
+		.sf-bracket {
+			stroke: #4f46e5;
+		}
+		.sf-frame {
+			fill: #4f46e5;
+		}
+		.sf-frame-faded {
+			fill: #4f46e5;
+			opacity: 0.45;
+		}
+		@media (prefers-color-scheme: dark) {
+			.sf-bracket {
+				stroke: #818cf8;
+			}
+			.sf-frame {
+				fill: #818cf8;
+			}
+			.sf-frame-faded {
+				fill: #818cf8;
+			}
+		}
+	</style>
+	<g class="sf-bracket" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M8 22V14a6 6 0 0 1 6-6h8" />
+		<path d="M42 8h8a6 6 0 0 1 6 6v8" />
+		<path d="M56 42v8a6 6 0 0 1-6 6h-8" />
+		<path d="M22 56H14a6 6 0 0 1-6-6v-8" />
+	</g>
+	<path class="sf-frame" d="M32 20h-8a4 4 0 0 0-4 4v16a4 4 0 0 0 4 4h8Z" />
+	<path class="sf-frame-faded" d="M32 20h8a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4h-8Z" />
+</svg>
