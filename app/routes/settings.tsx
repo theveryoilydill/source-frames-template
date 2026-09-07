@@ -28,7 +28,7 @@ import {
 import { OPEN_COUNTS_EVENT, clearOpenCounts, readOpenCounts } from "../data/openCounts";
 import { sources } from "../data/sources";
 
-const APP_VERSION = "2.10.0";
+const APP_VERSION = "2.10.1";
 
 export function meta(_args: Route.MetaArgs) {
 	const title = "Settings — Source Frames";
