@@ -16,4 +16,4 @@ worker-configuration.d.ts
 !.env.example
 
 # Other IDK
-.tsbuildinfo
+*.tsbuildinfo
