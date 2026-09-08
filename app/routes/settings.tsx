@@ -28,7 +28,7 @@ import {
 import { OPEN_COUNTS_EVENT, clearOpenCounts, readOpenCounts } from "../data/openCounts";
 import { sources } from "../data/sources";
 
-const APP_VERSION = "2.10.1";
+const APP_VERSION = "2.0.0";
 
 export function meta(_args: Route.MetaArgs) {
 	const title = "Settings — Source Frames";
@@ -159,8 +159,8 @@ function toImportedCustomFrame(entry: unknown): CustomFrame | null {
 	if (record.kind !== undefined && record.kind !== "iframe" && record.kind !== "link") return null;
 	return {
 		id: typeof record.id === "string" && record.id ? record.id : nextImportedFrameId(),
-		name: record.name,
-		URL: record.URL,
+		name: record.name.trim(),
+		URL: record.URL.trim(),
 		...(typeof record.description === "string" && record.description
 			? { description: record.description }
 			: {}),
@@ -236,12 +236,11 @@ export default function Settings() {
 		setChoice(readStoredChoice());
 
 		const readFavoritesCount = () => {
-			try {
-				const raw = localStorage.getItem("sf:favorites");
-				setFavoritesCount(raw ? (JSON.parse(raw) as string[]).length : 0);
-			} catch {
-				setFavoritesCount(0);
-			}
+			// Use readFavorites() (the app-wide source of truth) rather than
+			// reading the raw key: readFavorites() runs the one-time legacy
+			// "settings" migration when the sf:favorites key is absent, so the
+			// count here matches what the launcher actually shows.
+			setFavoritesCount(readFavorites().length);
 		};
 		readFavoritesCount();
 
@@ -339,7 +338,11 @@ export default function Settings() {
 		if (index === -1) return;
 		const frame = frames[index];
 		const next = deleteCustomFrame(id);
-		if (next.some((entry) => entry.id === id)) return; // storage no-op — nothing was deleted
+		// deleteCustomFrame returns the list unchanged when the id was not
+		// found (e.g. cleared in another tab), so a length check detects the
+		// no-op instead of searching for the id (always absent after a
+		// successful delete or a no-op alike).
+		if (next.length === frames.length) return; // storage no-op — nothing was deleted
 		setFrames(next);
 		// Deleting the row currently being edited exits edit mode.
 		if (editingId === id) cancelEditFrame();
