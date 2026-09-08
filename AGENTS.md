@@ -7,18 +7,17 @@
   - Always run the cron job for review agents.
   - Use as many subagents as you need because the website has unlimited
   - Make a .zip and a git changes file thing with an incrementing number as "all files in this task" so I can get it
-  - Always use pnpm
+  - Always use pnpm. Install it if not present. Always use the latest version.
   - Always delete useless traces like screenshots from the browser or logs when you are done. Just delete anything that is not needed. Chache from stuff like pnpm can stay.
   - Always pull the latest version of the repo before doing anything and finishing
 - Always start from the develop branch, the main branch is just for deploying
+- Always use the latest version of things
 
 ## Purpose
 
 Short, actionable instructions for AI coding agents working in this repository. For project overview and deployment see [README.md](README.md).
 
 ## Commands
-
-The repo pins `packageManager` (pnpm 11.6.0). Bare `pnpm` may not be on PATH — use corepack. In sandboxed/CI environments, prefix with `CI=true WRANGLER_SEND_METRICS=false` (skips wrangler metrics/telemetry and interactive prompts):
 
 | Task                   | Command                            |
 | ---------------------- | ---------------------------------- |

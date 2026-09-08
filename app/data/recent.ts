@@ -13,6 +13,8 @@ export type RecentEntry = {
 	openedAt?: number;
 };
 
+import { showToast } from "../Toast";
+
 export const RECENT_KEY = "sf:recent";
 export const RECENT_EVENT = "sf:recentUpdated";
 export const RECENT_LIMIT = 6;
@@ -68,7 +70,10 @@ export function writeRecent(entries: RecentEntry[]): RecentEntry[] {
 	try {
 		localStorage.setItem(RECENT_KEY, JSON.stringify(capped));
 	} catch {
-		/* storage unavailable — recents stay session-only */
+		showToast(
+			"Storage is full or unavailable — recent frames will last for this session only.",
+			"error",
+		);
 	}
 	if (typeof window === "undefined") return capped;
 	window.dispatchEvent(new CustomEvent(RECENT_EVENT, { detail: { recent: capped } }));
@@ -85,6 +90,23 @@ export function pushRecent(url: string, name: string): RecentEntry[] {
 
 export function clearRecent(): RecentEntry[] {
 	return writeRecent([]);
+}
+
+/**
+ * Rewrites oldUrl to newUrl (and refreshes the chip label) after a custom
+ * frame's URL edit, so recents never keep pointing at the dead URL; no-op
+ * when no entry points at oldUrl.
+ */
+export function renameRecentUrl(oldUrl: string, newUrl: string, newName?: string): RecentEntry[] {
+	const recent = readRecent();
+	if (!recent.some((entry) => entry.URL === oldUrl)) return recent;
+	return writeRecent(
+		recent.map((entry) =>
+			entry.URL === oldUrl
+				? { ...entry, URL: newUrl, ...(newName ? { name: newName } : {}) }
+				: entry,
+		),
+	);
 }
 
 /** Removes every recent entry with the given URL; no-op (no write/event) when none match. */

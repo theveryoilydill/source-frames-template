@@ -45,6 +45,10 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	// that goes fullscreen so only the source fills the screen.
 	const contentRef = useRef<HTMLDivElement>(null);
 	const isClosingRef = useRef(false);
+	// The close safety timer must be cancellable: onAnimationEnd also calls
+	// onClose, and without cancelling, the timer would fire a second onClose
+	// 260ms later (a double history.back() for the no-onClose callers).
+	const closeTimerRef = useRef<number | null>(null);
 	const [isClosing, setIsClosing] = useState(false);
 	const [isFullscreen, setIsFullscreen] = useState(false);
 	const [loaded, setLoaded] = useState(false);
@@ -69,7 +73,8 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 		setIsClosing(true);
 		// Safety net: background tabs throttle CSS animations, so
 		// animationend may never fire — close anyway.
-		window.setTimeout(() => {
+		closeTimerRef.current = window.setTimeout(() => {
+			closeTimerRef.current = null;
 			if (!isClosingRef.current) return;
 			isClosingRef.current = false;
 			if (onClose) onClose();
@@ -170,6 +175,14 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 		[],
 	);
 
+	// Same for the close safety timer.
+	useEffect(
+		() => () => {
+			if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+		},
+		[],
+	);
+
 	const toggleFullscreen = () => {
 		// Fullscreen the frame area, not the dialog chrome: the toolbar stays
 		// behind with the rest of the app and the source fills the screen.
@@ -244,6 +257,12 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	if (!url) return null;
 
 	const canPopOut = /^https?:\/\//i.test(url);
+	// iPhone Safari exposes no element-fullscreen API — the button would
+	// silently do nothing there, so it is hidden instead of dead.
+	const fullscreenSupported =
+		typeof document !== "undefined" &&
+		(document.fullscreenEnabled === true ||
+			Boolean((document.documentElement as FullscreenElement).webkitRequestFullscreen));
 	const fullscreenLabel = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
 	// Subtle attention pull toward the close button while the hint pill
 	// shows: a plain ring toggled by class — the shared iconButtonClass
@@ -261,6 +280,11 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 				// Only react to the root's own overlay-out run, never to child
 				// animation events bubbling up.
 				if (!isClosing || e.target !== e.currentTarget) return;
+				if (closeTimerRef.current !== null) {
+					window.clearTimeout(closeTimerRef.current);
+					closeTimerRef.current = null;
+				}
+				isClosingRef.current = false;
 				if (onClose) onClose();
 				else window.history.back();
 			}}
@@ -297,31 +321,33 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 							</svg>
 						</button>
 					) : null}
-					<button
-						type="button"
-						aria-label={fullscreenLabel}
-						title={fullscreenLabel}
-						onClick={toggleFullscreen}
-						className={iconButtonClass}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth={1.8}
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							className="h-[18px] w-[18px]"
-							aria-hidden
+					{fullscreenSupported ? (
+						<button
+							type="button"
+							aria-label={fullscreenLabel}
+							title={fullscreenLabel}
+							onClick={toggleFullscreen}
+							className={iconButtonClass}
 						>
-							{isFullscreen ? (
-								<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3" />
-							) : (
-								<path d="M8 3H5a2 2 0 0 0-2 2v3m13 0V5a2 2 0 0 0-2-2h-3m3 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-							)}
-						</svg>
-					</button>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth={1.8}
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="h-[18px] w-[18px]"
+								aria-hidden
+							>
+								{isFullscreen ? (
+									<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3" />
+								) : (
+									<path d="M8 3H5a2 2 0 0 0-2 2v3m13 0V5a2 2 0 0 0-2-2h-3m3 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+								)}
+							</svg>
+						</button>
+					) : null}
 					<button
 						type="button"
 						aria-label="Reload frame"
