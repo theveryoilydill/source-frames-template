@@ -66,6 +66,7 @@ export function TagsMenu({
 	const [open, setOpen] = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
 	const isClosingRef = useRef(false);
+	const closeTimerRef = useRef<number | null>(null);
 	const escapeCloseRef = useRef(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
@@ -87,7 +88,29 @@ export function TagsMenu({
 		setIsClosing(true);
 		// Safety net: background tabs throttle CSS animations, so
 		// animationend may never fire — unmount anyway.
-		window.setTimeout(finishClose, 240);
+		if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+		closeTimerRef.current = window.setTimeout(finishClose, 240);
+	};
+
+	/**
+	 * Trigger toggle: re-clicking while the exit animation runs must cancel
+	 * the pending close and keep the panel open — the old `setOpen(v => !v)`
+	 * toggled the still-true open state to false, swallowing the reopen.
+	 */
+	const toggle = () => {
+		if (isClosingRef.current) {
+			if (closeTimerRef.current !== null) {
+				window.clearTimeout(closeTimerRef.current);
+				closeTimerRef.current = null;
+			}
+			isClosingRef.current = false;
+			escapeCloseRef.current = false;
+			setIsClosing(false);
+			setOpen(true);
+			return;
+		}
+		if (open) close(false);
+		else setOpen(true);
 	};
 
 	// Close on outside pointerdown; Escape closes and restores focus to the
@@ -115,6 +138,14 @@ export function TagsMenu({
 		};
 	}, [open]);
 
+	// Pending close timers must not fire into an unmounted component.
+	useEffect(
+		() => () => {
+			if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+		},
+		[],
+	);
+
 	const selectedCount = selected.length;
 
 	return (
@@ -122,11 +153,13 @@ export function TagsMenu({
 			<button
 				ref={triggerRef}
 				type="button"
-				aria-haspopup="menu"
+				// Disclosure pattern (aria-expanded + aria-controls): the panel is
+				// a group of toggle buttons, not an ARIA menu — no arrow-key menu
+				// navigation is implemented, so menu semantics would lie.
 				aria-expanded={open}
 				aria-controls={PANEL_ID}
 				aria-label={selectedCount > 0 ? `Tags, ${selectedCount} selected` : "Tags"}
-				onClick={() => (open && !isClosing ? close(false) : setOpen((v) => !v))}
+				onClick={toggle}
 				className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition duration-150 ${
 					open
 						? "border-accent/40 bg-accent/10 text-ink"
@@ -145,6 +178,7 @@ export function TagsMenu({
 			{open ? (
 				<div
 					id={PANEL_ID}
+					role="group"
 					aria-label="Filter by tag"
 					className={
 						(isClosing ? "animate-menu-out" : "animate-menu-in") +
@@ -181,7 +215,7 @@ export function TagsMenu({
 									type="button"
 									aria-pressed={active}
 									onClick={() => onToggle(tag)}
-									className={`animate-menu-item-in flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition duration-150 ${
+									className={`animate-menu-item-in flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition duration-150 ${
 										active ? "bg-accent/10 text-ink" : "text-muted hover:bg-raised hover:text-ink"
 									}`}
 									style={{ animationDelay: `${i * 24}ms` }}
@@ -189,7 +223,7 @@ export function TagsMenu({
 									<CheckIcon visible={active} />
 									<span className="truncate">{tag}</span>
 									{tagCounts && tagCounts[tag] !== undefined ? (
-										<span className="ml-auto shrink-0 text-[10px] font-normal tabular-nums text-muted/70">
+										<span className="ml-auto shrink-0 text-[10px] font-normal tabular-nums text-muted">
 											{tagCounts[tag]}
 										</span>
 									) : null}

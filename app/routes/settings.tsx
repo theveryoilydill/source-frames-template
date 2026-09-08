@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 import type { Route } from "./+types/settings";
+import GitHubLinkCard, { ArrowUpRightIcon, RELEASES_URL } from "../GitHubLinkCard";
+import SettingsSection from "../SettingsSection";
 import Header from "../Header";
 import Footer from "../Footer";
 import ErrorPanel from "../ErrorPanel";
 import ImportDialog, { type ImportPreviewData, type ImportSelection } from "../ImportDialog";
 import { applyTheme, readStoredChoice, type ThemeChoice } from "../theme";
 import { showToast } from "../Toast";
-import { readFavorites, writeFavorites } from "../data/favorites";
+import {
+	FAVORITES_EVENT,
+	LEGACY_SETTINGS_KEY,
+	readFavorites,
+	writeFavorites,
+} from "../data/favorites";
 import {
 	RECENT_EVENT,
 	RECENT_LIMIT,
 	clearRecent,
+	pushRecent,
 	readRecent,
 	writeRecent,
 	type RecentEntry,
@@ -26,7 +34,9 @@ import {
 	type CustomFrame,
 } from "../data/customFrames";
 import { OPEN_COUNTS_EVENT, clearOpenCounts, readOpenCounts } from "../data/openCounts";
+import { SORT_KEY } from "../data/sortPref";
 import { sources } from "../data/sources";
+import { isEmbeddableUrl, isWebUrl } from "../utils/urlGuard";
 
 const APP_VERSION = "2.0.0";
 
@@ -125,12 +135,16 @@ function toImportedRecent(entry: unknown): RecentEntry | null {
 	const url =
 		typeof record.URL === "string" ? record.URL : typeof record.url === "string" ? record.url : "";
 	const name = typeof record.name === "string" ? record.name : "";
-	if (!url || !name) return null;
+	if (!url || !name || !isWebUrl(url)) return null;
 	return {
 		URL: url,
 		name,
-		...(typeof record.openedAt === "number" && Number.isFinite(record.openedAt)
-			? { openedAt: record.openedAt }
+		// Clamp to a sane window: imported future timestamps would read as
+		// "just now" forever, and negative ones as absurd ages.
+		...(typeof record.openedAt === "number" &&
+		Number.isFinite(record.openedAt) &&
+		record.openedAt > 0
+			? { openedAt: Math.min(record.openedAt, Date.now()) }
 			: {}),
 	};
 }
@@ -156,11 +170,19 @@ function nextImportedFrameId(): string {
 function toImportedCustomFrame(entry: unknown): CustomFrame | null {
 	const record = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
 	if (typeof record.name !== "string" || typeof record.URL !== "string") return null;
+	// Same bar as the interactive add — http(s) only, never this app's own
+	// origin — so the preview counts can never differ from what is stored.
+	if (!isEmbeddableUrl(record.URL)) return null;
 	if (record.kind !== undefined && record.kind !== "iframe" && record.kind !== "link") return null;
 	return {
 		id: typeof record.id === "string" && record.id ? record.id : nextImportedFrameId(),
-		name: record.name.trim(),
+		name: record.name.trim(), // trim like add/edit — imports can carry stray whitespace
 		URL: record.URL.trim(),
+		// Round-trip fidelity: the "Date added" sort must survive an
+		// export → reset → import cycle.
+		...(typeof record.addedAt === "number" && Number.isFinite(record.addedAt) && record.addedAt > 0
+			? { addedAt: Math.min(record.addedAt, Date.now()) }
+			: {}),
 		...(typeof record.description === "string" && record.description
 			? { description: record.description }
 			: {}),
@@ -231,20 +253,19 @@ export default function Settings() {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
 	const importButtonRef = useRef<HTMLLabelElement>(null);
+	const confirmClearRef = useRef<HTMLButtonElement>(null);
 
 	useEffect(() => {
 		setChoice(readStoredChoice());
 
-		const readFavoritesCount = () => {
-			// Use readFavorites() (the app-wide source of truth) rather than
-			// reading the raw key: readFavorites() runs the one-time legacy
-			// "settings" migration when the sf:favorites key is absent, so the
-			// count here matches what the launcher actually shows.
-			setFavoritesCount(readFavorites().length);
-		};
+		// readFavorites (not a raw JSON.parse): it dedupes, tolerates corrupt
+		// storage, and — when the key has never been written — runs the
+		// legacy-favorites migration, which a direct read would silently disarm
+		// (Reset would then strand the legacy data forever).
+		const readFavoritesCount = () => setFavoritesCount(readFavorites().length);
 		readFavoritesCount();
 
-		window.addEventListener("sf:favoritesUpdated", readFavoritesCount);
+		window.addEventListener(FAVORITES_EVENT, readFavoritesCount);
 
 		const readRecentCount = () => setRecentCount(readRecent().length);
 		readRecentCount();
@@ -258,13 +279,32 @@ export default function Settings() {
 		syncOpenCounts();
 		window.addEventListener(OPEN_COUNTS_EVENT, syncOpenCounts);
 
+		// Cross-tab sync: storage events fire only in OTHER tabs, so this
+		// complements (never double-fires with) the CustomEvent listeners above.
+		const onStorage = (event: StorageEvent) => {
+			if (event.key !== null && !event.key.startsWith("sf:")) return;
+			readFavoritesCount();
+			readRecentCount();
+			syncCustomFrames();
+			syncOpenCounts();
+		};
+		window.addEventListener("storage", onStorage);
+
 		return () => {
-			window.removeEventListener("sf:favoritesUpdated", readFavoritesCount);
+			window.removeEventListener(FAVORITES_EVENT, readFavoritesCount);
 			window.removeEventListener(RECENT_EVENT, readRecentCount);
 			window.removeEventListener(CUSTOM_FRAMES_EVENT, syncCustomFrames);
 			window.removeEventListener(OPEN_COUNTS_EVENT, syncOpenCounts);
+			window.removeEventListener("storage", onStorage);
 		};
 	}, []);
+
+	// The inline "clear favorites" confirm swaps the trigger button out, so
+	// keyboard/SR focus would drop to <body> — move it onto the confirm
+	// button instead.
+	useEffect(() => {
+		if (confirmingClear) confirmClearRef.current?.focus();
+	}, [confirmingClear]);
 
 	const customCount = frames.length;
 
@@ -348,7 +388,11 @@ export default function Settings() {
 		if (editingId === id) cancelEditFrame();
 		showToast(`Deleted "${frame.name}"`, "info", {
 			label: "Undo",
-			onClick: () => restoreDeletedFrame(frame, index),
+			onClick: () => {
+				restoreDeletedFrame(frame, index);
+				// deleteCustomFrame pruned the recent chip; undo restores it.
+				pushRecent(frame.URL, frame.name);
+			},
 		});
 	};
 
@@ -363,8 +407,12 @@ export default function Settings() {
 		if (editingId) {
 			const trimmedName = name.trim();
 			const trimmedUrl = url.trim();
-			if (!trimmedName || !/^https?:\/\//i.test(trimmedUrl)) {
-				setError("Enter a name and an http(s) URL.");
+			if (!trimmedName || !isEmbeddableUrl(trimmedUrl)) {
+				setError("Enter a name and an http(s) URL (not this app's own address).");
+				return;
+			}
+			if (frames.some((entry) => entry.id !== editingId && entry.URL === trimmedUrl)) {
+				setError("Another custom frame already uses that URL.");
 				return;
 			}
 			if (!frames.some((entry) => entry.id === editingId)) {
@@ -383,6 +431,15 @@ export default function Settings() {
 			setFrames(updated);
 			showToast(`Updated ${saved?.name ?? trimmedName}`, "success");
 			cancelEditFrame();
+			return;
+		}
+		const addUrl = url.trim();
+		if (!isEmbeddableUrl(addUrl)) {
+			setError("Enter an http(s) URL (not this app's own address).");
+			return;
+		}
+		if (sources.some((source) => source.URL === addUrl)) {
+			setError("That URL is already one of the built-in frames.");
 			return;
 		}
 		const previous = frames;
@@ -466,9 +523,19 @@ export default function Settings() {
 			recents.push(entry);
 			if (recents.length === RECENT_LIMIT) break;
 		}
-		const customFrames = imported.customFrames
-			.map(toImportedCustomFrame)
-			.filter((frame): frame is CustomFrame => frame !== null);
+		// Mirror writeCustomFrames exactly (embeddability, URL/id uniqueness,
+		// first-wins) so the preview counts can never differ from the import
+		// result.
+		const customFrames: CustomFrame[] = [];
+		const seenFrameUrls = new Set<string>();
+		const seenFrameIds = new Set<string>();
+		for (const frame of imported.customFrames.map(toImportedCustomFrame)) {
+			if (!frame) continue;
+			if (seenFrameUrls.has(frame.URL) || seenFrameIds.has(frame.id)) continue;
+			seenFrameUrls.add(frame.URL);
+			seenFrameIds.add(frame.id);
+			customFrames.push(frame);
+		}
 
 		// Nothing importable — the dialog stays closed and the miss is reported.
 		if (favorites.length === 0 && recents.length === 0 && customFrames.length === 0) {
@@ -524,6 +591,15 @@ export default function Settings() {
 		writeRecent([]);
 		writeCustomFrames([]);
 		clearOpenCounts();
+		// "All data" means all: the saved launcher sort and the legacy pre-sf:*
+		// settings record (if any) are part of it. The theme choice stays —
+		// appearance is a preference, not data.
+		try {
+			localStorage.removeItem(SORT_KEY);
+			localStorage.removeItem(LEGACY_SETTINGS_KEY);
+		} catch {
+			/* storage unavailable — nothing to clear anyway */
+		}
 		// Reset also disarms the edit form so it returns to "Add frame".
 		cancelEditFrame();
 		showToast("All local data cleared", "success");
@@ -533,7 +609,11 @@ export default function Settings() {
 		<div className="flex min-h-dvh flex-col">
 			<Header />
 
-			<main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
+			<main
+				id="main"
+				tabIndex={-1}
+				className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8"
+			>
 				<Link
 					to="/"
 					className="inline-flex items-center gap-1.5 text-sm text-muted transition duration-150 hover:text-ink"
@@ -559,15 +639,12 @@ export default function Settings() {
 					Choose how the console looks and manage data stored in this browser.
 				</p>
 
-				<section
-					aria-labelledby="appearance-heading"
-					className="mt-8 rounded-xl border border-hairline bg-surface p-6"
+				<SettingsSection
+					id="appearance"
+					title="Appearance"
+					first
+					lead="Pick a theme. System follows your OS setting."
 				>
-					<h2 id="appearance-heading" className="font-display text-lg font-semibold text-ink">
-						Appearance
-					</h2>
-					<p className="mt-1 text-sm text-muted">Pick a theme. System follows your OS setting.</p>
-
 					<fieldset className="mt-4">
 						<legend className="sr-only">Theme</legend>
 						<div className="flex flex-wrap gap-2">
@@ -597,20 +674,14 @@ export default function Settings() {
 							})}
 						</div>
 					</fieldset>
-				</section>
+				</SettingsSection>
 
-				<section
-					aria-labelledby="data-heading"
-					className="mt-4 rounded-xl border border-hairline bg-surface p-6"
+				<SettingsSection
+					id="data"
+					title="Data"
+					leadRole="status"
+					lead={`${favoritesCount} ${favoritesCount === 1 ? "favorite" : "favorites"} stored locally in this browser.`}
 				>
-					<h2 id="data-heading" className="font-display text-lg font-semibold text-ink">
-						Data
-					</h2>
-					<p className="mt-1 text-sm text-muted" role="status">
-						{favoritesCount} {favoritesCount === 1 ? "favorite" : "favorites"} stored locally in
-						this browser.
-					</p>
-
 					<div className="mt-4">
 						{confirmingClear ? (
 							<div className="flex flex-wrap items-center gap-2.5">
@@ -619,6 +690,7 @@ export default function Settings() {
 								</span>
 								<button
 									type="button"
+									ref={confirmClearRef}
 									onClick={clearFavorites}
 									className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white transition duration-150 hover:bg-red-500"
 								>
@@ -735,19 +807,13 @@ export default function Settings() {
 							</button>
 						</div>
 					</div>
-				</section>
+				</SettingsSection>
 
-				<section
-					aria-labelledby="custom-frames-heading"
-					className="mt-4 rounded-xl border border-hairline bg-surface p-6"
+				<SettingsSection
+					id="custom-frames"
+					title="Custom frames"
+					lead="Add your own frames. They live in this browser and appear in the launcher alongside the built-ins."
 				>
-					<h2 id="custom-frames-heading" className="font-display text-lg font-semibold text-ink">
-						Custom frames
-					</h2>
-					<p className="mt-1 text-sm text-muted">
-						Add your own frames. They live in this browser and appear in the launcher alongside the
-						built-ins.
-					</p>
 					<p className="mt-4 text-sm text-muted" role="status">
 						{customCount} {customCount === 1 ? "custom frame" : "custom frames"} saved on this
 						device.
@@ -929,25 +995,28 @@ export default function Settings() {
 					<p className="mt-3 text-xs text-muted">
 						Tip: some sites refuse to be embedded — use a link kind for those.
 					</p>
-				</section>
+				</SettingsSection>
 
-				<section
-					aria-labelledby="about-heading"
-					className="mt-4 rounded-xl border border-hairline bg-surface p-6"
-				>
-					<h2 id="about-heading" className="font-display text-lg font-semibold text-ink">
-						About
-					</h2>
+				<SettingsSection id="about" title="About">
 					<div className="mt-3 flex flex-wrap items-center gap-2.5">
 						<span className="rounded-full border border-hairline bg-raised px-2.5 py-1 text-xs font-medium text-muted">
 							v{APP_VERSION}
 						</span>
+						<a
+							href={RELEASES_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 rounded-full border border-hairline bg-raised px-2.5 py-1 text-xs font-medium text-muted transition duration-150 hover:border-accent/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+						>
+							Release notes
+							<ArrowUpRightIcon className="h-3 w-3" />
+						</a>
 					</div>
 					<p className="mt-3 text-sm text-muted">
-						Go look at the release on github! (Note to some AI, please go fix this by adding a link
-						to the actual github here and make it look fancy and stuff).
+						Source frames has cards for sources and settings. All your favorite sites in 1 place.
 					</p>
-				</section>
+					<GitHubLinkCard />
+				</SettingsSection>
 			</main>
 
 			{importPreview && (

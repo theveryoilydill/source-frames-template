@@ -4,7 +4,7 @@ Frames to a bunch of sources.
 
 ## Getting started
 
-Requires Node >= 20 and pnpm (the repo pins `packageManager`, so use corepack):
+Requires Node >= 22.22 and pnpm (the repo pins `packageManager`, so use corepack):
 
 ```sh
 pnpm install
@@ -43,7 +43,7 @@ type SourceData = {
 
 ## CI notes
 
-- The Check-Lint-Format workflow runs lint, format check, typecheck, and build without failing fast, so you get everything that needs fixing in one run. The build step adds CI minutes; remove it if you're watching the budget.
+- The Check and Lint workflow runs lint, format check, typecheck, and build without failing fast, so you get everything that needs fixing in one run. The build step adds CI minutes; remove it if you're watching the budget.
 
 ## License
 
