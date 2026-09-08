@@ -15,8 +15,8 @@ import "./app.css";
 
 export const links: Route.LinksFunction = () => [
 	{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-	{ rel: "icon", href: "/favicon.svg" },
 	{ rel: "alternate icon", href: "/favicon.ico" },
+	{ rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
 	{ rel: "manifest", href: "/manifest.webmanifest" },
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
 	{
@@ -42,7 +42,7 @@ export function Layout({ children }: { children: ReactNode }) {
 		<html lang="en">
 			<head>
 				<meta charSet="utf-8" />
-				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 				<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
 				<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0e14" />
 				<script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
@@ -50,6 +50,13 @@ export function Layout({ children }: { children: ReactNode }) {
 				<Links />
 			</head>
 			<body className="bg-page font-sans text-ink antialiased">
+				{/* Skip link: first focusable on every route; lands on <main id="main">. */}
+				<a
+					href="#main"
+					className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[10001] focus:rounded-lg focus:border focus:border-hairline focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink focus:shadow-lg"
+				>
+					Skip to content
+				</a>
 				{children}
 				<ToastRegion />
 				<ScrollRestoration />

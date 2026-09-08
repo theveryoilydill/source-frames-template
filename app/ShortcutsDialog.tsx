@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "./useFocusTrap";
 
 const iconButtonClass =
 	"inline-flex h-9 w-9 items-center justify-center rounded-md text-muted transition duration-150 hover:bg-raised hover:text-ink active:scale-90";
@@ -7,7 +8,7 @@ const kbdClass =
 	"rounded-md border border-hairline bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted";
 
 const SHORTCUTS: { keys: string[]; description: string }[] = [
-	{ keys: ["Ctrl K"], description: "Open the command palette" },
+	{ keys: ["Ctrl / ⌘ K"], description: "Open the command palette" },
 	{ keys: ["/"], description: "Focus search" },
 	{ keys: ["F"], description: "Toggle the favorites filter" },
 	{ keys: ["?"], description: "Show or hide this dialog" },
@@ -22,7 +23,14 @@ const SHORTCUTS: { keys: string[]; description: string }[] = [
 export default function ShortcutsDialog({ onClose }: { onClose: () => void }) {
 	const closeRef = useRef<HTMLButtonElement>(null);
 	const isClosingRef = useRef(false);
+	const overlayRef = useRef<HTMLDivElement>(null);
 	const [isClosing, setIsClosing] = useState(false);
+	// Latest-ref pattern: the caller passes an inline onClose, so keeping it
+	// behind a ref makes beginClose stable and the mount effect single-run
+	// (re-running it would yank focus back to the close button on every
+	// parent re-render).
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
 
 	const beginClose = useCallback(() => {
 		if (isClosingRef.current) return;
@@ -33,9 +41,16 @@ export default function ShortcutsDialog({ onClose }: { onClose: () => void }) {
 		window.setTimeout(() => {
 			if (!isClosingRef.current) return;
 			isClosingRef.current = false;
-			onClose();
+			onCloseRef.current();
 		}, 260);
-	}, [onClose]);
+	}, []);
+
+	// This dialog is aria-modal — it must actually trap focus like the
+	// other dialogs do (Tab previously escaped into the background page).
+	useFocusTrap(true, overlayRef, {
+		initialFocus: () => closeRef.current,
+		onEscape: beginClose,
+	});
 
 	useEffect(() => {
 		const prevOverflow = document.body.style.overflow;
@@ -57,6 +72,7 @@ export default function ShortcutsDialog({ onClose }: { onClose: () => void }) {
 
 	return (
 		<div
+			ref={overlayRef}
 			role="dialog"
 			aria-modal="true"
 			aria-label="Keyboard shortcuts"

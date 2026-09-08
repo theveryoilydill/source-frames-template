@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { THEME_KEY, applyTheme, readStoredChoice } from "./theme";
 
 function SunIcon({ className }: { className?: string }) {
@@ -44,6 +44,20 @@ function MoonIcon({ className }: { className?: string }) {
  * correct — no hydration mismatch, no wrong icon before React mounts.
  */
 export function ThemeToggle() {
+	// Mirrors the resolved theme for the accessible label: "Toggle theme"
+	// told a screen reader nothing about what the button would do; now it
+	// announces the action ("Switch to light theme"). Kept in sync with the
+	// <html> class so external flips (settings radios, other tabs) stay
+	// truthful too.
+	const [isDark, setIsDark] = useState(false);
+	useEffect(() => {
+		const sync = () => setIsDark(document.documentElement.classList.contains("dark"));
+		sync();
+		const observer = new MutationObserver(sync);
+		observer.observe(document.documentElement, { attributeFilter: ["class"] });
+		return () => observer.disconnect();
+	}, []);
+
 	// Keep <html> in sync with other tabs (storage event) and with OS-level
 	// scheme flips while the choice is "system".
 	useEffect(() => {
@@ -65,8 +79,8 @@ export function ThemeToggle() {
 	return (
 		<button
 			type="button"
-			aria-label="Toggle theme"
-			title="Toggle theme"
+			aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+			title={isDark ? "Switch to light theme" : "Switch to dark theme"}
 			onClick={() =>
 				applyTheme(document.documentElement.classList.contains("dark") ? "light" : "dark")
 			}

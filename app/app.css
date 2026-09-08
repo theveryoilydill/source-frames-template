@@ -226,6 +226,11 @@ html.theme-transitioning *::after {
 	}
 }
 
+/* Kill the gray tap flash on custom-styled touch targets (iOS/Android). */
+* {
+	-webkit-tap-highlight-color: transparent;
+}
+
 /* Accent focus ring everywhere a control does not provide its own. */
 :focus-visible {
 	outline: 2px solid var(--sf-accent);

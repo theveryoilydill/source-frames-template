@@ -14,7 +14,7 @@ export function Footer() {
 					<p>Open your sources in place.</p>
 					<p className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted/80">
 						<kbd className="rounded-md border border-hairline bg-raised px-1.5 py-0.5 font-mono text-[10px] text-muted">
-							Ctrl K
+							Ctrl / ⌘ K
 						</kbd>
 						<span>palette</span>
 						<span aria-hidden className="text-muted/50">

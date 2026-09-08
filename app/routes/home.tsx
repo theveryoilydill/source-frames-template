@@ -30,6 +30,7 @@ import {
 	type CustomFrame,
 } from "../data/customFrames";
 import { OPEN_COUNTS_EVENT, readOpenCounts, recordOpen } from "../data/openCounts";
+import { isEmbeddableUrl } from "../utils/urlGuard";
 import { readSortPref, writeSortPref, type SortPref } from "../data/sortPref";
 
 export function meta(_args: Route.MetaArgs) {
@@ -157,6 +158,17 @@ function frameNameFromUrl(url: string): string {
  * re-renders via the CUSTOM_FRAMES_EVENT listener), and the result toast.
  */
 function addFrameFromUrl(url: string) {
+	// Built-ins can't be shadowed by a custom frame (every list is keyed by
+	// URL), and the shared guard keeps non-web / self-origin URLs out of the
+	// viewer.
+	if (sources.some((source) => source.URL === url)) {
+		showToast(`${frameNameFromUrl(url)} is already one of the built-in frames`, "info");
+		return;
+	}
+	if (!isEmbeddableUrl(url)) {
+		showToast("That URL can't be added as a frame (http(s) URLs only).", "error");
+		return;
+	}
 	const existed = readCustomFrames().some((frame) => frame.URL === url);
 	const name = frameNameFromUrl(url);
 	addCustomFrame({ name, URL: url, tags: [], kind: "iframe" });
@@ -256,6 +268,22 @@ export default function Home() {
 		const onOpenCounts = () => setOpenCounts(readOpenCounts());
 		window.addEventListener(OPEN_COUNTS_EVENT, onOpenCounts as EventListener);
 		return () => window.removeEventListener(OPEN_COUNTS_EVENT, onOpenCounts as EventListener);
+	}, []);
+
+	// Cross-tab sync: storage events fire only in OTHER tabs, complementing
+	// the same-document CustomEvent listeners above — a second tab never
+	// shows stale favorites/recents/frames/counts.
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const onStorage = (event: StorageEvent) => {
+			if (event.key !== null && !event.key.startsWith("sf:")) return;
+			setFavorites(readFavorites());
+			setRecent(readRecent());
+			setCustomFrames(readCustomFrames());
+			setOpenCounts(readOpenCounts());
+		};
+		window.addEventListener("storage", onStorage);
+		return () => window.removeEventListener("storage", onStorage);
 	}, []);
 
 	// Drag a URL from outside the app onto the page to add a custom frame.
@@ -690,7 +718,7 @@ export default function Home() {
 		<div className="flex min-h-dvh flex-col">
 			<Header />
 
-			<main className="flex-1">
+			<main id="main" tabIndex={-1} className="flex-1">
 				<section className="border-b border-hairline">
 					<div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:px-8">
 						{/* The one bold element: the product's own name, framed by the
