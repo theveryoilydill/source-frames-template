@@ -14,7 +14,7 @@ const requestHandler = createRequestHandler(
  * SSR emits per-request inline scripts (hydration context), which would
  * need nonce plumbing through the worker first — see the release review
  * report for the follow-up. frame-ancestors is standalone-safe.
- * 
+ *
  * Human verdict: Don't use a CSP.
  */
 const SECURITY_HEADERS: Record<string, string> = {
