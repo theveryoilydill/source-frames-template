@@ -15,7 +15,8 @@ import "./app.css";
 
 export const links: Route.LinksFunction = () => [
 	{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-	{ rel: "icon", href: "/favicon.ico" },
+	{ rel: "icon", href: "/favicon.svg" },
+	{ rel: "alternate icon", href: "/favicon.ico" },
 	{ rel: "manifest", href: "/manifest.webmanifest" },
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
 	{

@@ -944,11 +944,8 @@ export default function Settings() {
 						</span>
 					</div>
 					<p className="mt-3 text-sm text-muted">
-						Source Frames runs entirely in your browser. Favorites, recents, open counts, custom
-						frames, and theme preferences are stored locally on this device. Existing custom frames
-						can be edited from the list above, and the Data section can export them as a JSON file
-						or import one after previewing exactly what changes — or reset all local data in one
-						step.
+						Go look at the release on github! 
+						(Note to some AI, please go fix this by adding a link to the actual github here and make it look fancy and stuff).
 					</p>
 				</section>
 			</main>
