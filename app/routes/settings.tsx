@@ -944,8 +944,8 @@ export default function Settings() {
 						</span>
 					</div>
 					<p className="mt-3 text-sm text-muted">
-						Go look at the release on github! 
-						(Note to some AI, please go fix this by adding a link to the actual github here and make it look fancy and stuff).
+						Go look at the release on github! (Note to some AI, please go fix this by adding a link
+						to the actual github here and make it look fancy and stuff).
 					</p>
 				</section>
 			</main>
