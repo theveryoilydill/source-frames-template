@@ -7,6 +7,13 @@ const requestHandler = createRequestHandler(
 
 export default {
 	async fetch(request) {
-		return requestHandler(request);
+		const response = await requestHandler(request);
+		const headers = new Headers(response.headers);
+		// CSP Removed on purpose
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		});
 	},
 } satisfies ExportedHandler<Env>;

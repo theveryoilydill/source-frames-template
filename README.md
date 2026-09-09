@@ -4,7 +4,7 @@ Frames to a bunch of sources.
 
 ## Getting started
 
-Requires Node >= 20 and pnpm (the repo pins `packageManager`, so use corepack):
+Requires Node >= 22.22 and pnpm (the repo pins `packageManager`, so use corepack):
 
 ```sh
 pnpm install
@@ -41,9 +41,23 @@ type SourceData = {
 - **GitHub Pages:** a workflow is included (`.github/workflows/deploy.yml`), but Pages project sites serve under `/<repo>/` — absolute asset paths need a base path (vite `base` + React Router `basename`), so it only works at a custom domain/root by default.
 - **Other static hosts:** previously this README recommended Vercel or Netlify; they work, but the Worker's SSR fallback is lost — only the prerendered `/` and `/settings` are fully functional.
 
+## Docker
+
+Self-host the built Cloudflare Worker outside Cloudflare:
+
+```sh
+docker build -t source-frames .
+docker run --rm -p 8787:8787 source-frames
+```
+
+Then open http://localhost:8787. The container runs the built worker with
+`wrangler dev` (workerd), because the app is a workerd bundle rather than a
+Node HTTP server. Debian-based images are required — workerd has no
+Alpine/musl builds.
+
 ## CI notes
 
-- The Check-Lint-Format workflow runs lint, format check, typecheck, and build without failing fast, so you get everything that needs fixing in one run. The build step adds CI minutes; remove it if you're watching the budget.
+- The Check and Lint workflow runs lint, format check, typecheck, and build without failing fast, so you get everything that needs fixing in one run. The build step adds CI minutes; remove it if you're watching the budget.
 
 ## License
 

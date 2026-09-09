@@ -268,16 +268,25 @@ export default function CommandPalette({
 						onKeyDown={onInputKeyDown}
 						placeholder="Search frames..."
 						aria-label="Search frames"
+						// Proper combobox wiring: aria-activedescendant is only honored on
+						// composite roles, so without these the arrow-key navigation is
+						// completely silent to screen readers.
+						role="combobox"
+						aria-expanded="true"
+						aria-haspopup="listbox"
+						aria-controls={matches.length > 0 ? LIST_ID : undefined}
 						aria-activedescendant={activeId}
 						autoComplete="off"
 						spellCheck={false}
-						className="h-8 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-muted/70 focus:outline-none"
+						className="h-8 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
 					/>
 					<kbd className={kbdClass}>Esc</kbd>
 				</div>
 
 				{matches.length === 0 ? (
-					<p className="px-4 py-8 text-center text-sm text-muted">No frames match</p>
+					<p role="status" className="px-4 py-8 text-center text-sm text-muted">
+						No frames match
+					</p>
 				) : (
 					<div
 						id={LIST_ID}
@@ -300,7 +309,7 @@ export default function CommandPalette({
 									onMouseEnter={() => setActiveIndex(i)}
 									onClick={() => activate(source)}
 									className={`flex cursor-pointer items-center gap-2 px-4 py-2.5 transition duration-150 ${
-										i === activeIndex ? "bg-accent/10 text-accent" : "text-ink"
+										i === activeIndex ? "bg-accent/10 text-accent-text" : "text-ink"
 									}`}
 								>
 									<span className="min-w-0 truncate text-sm font-medium">{source.name}</span>

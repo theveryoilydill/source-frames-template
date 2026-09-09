@@ -11,6 +11,7 @@
  * (saved under localStorage["settings"] as frame NAMES) a way back.
  */
 
+import { showToast } from "../Toast";
 import { readCustomFrames } from "./customFrames";
 import { sources } from "./sources";
 
@@ -18,7 +19,7 @@ export const FAVORITES_KEY = "sf:favorites";
 export const FAVORITES_EVENT = "sf:favoritesUpdated";
 
 /** Pre-sf:* storage: the removed SettingsProvider persisted favorites here. */
-const LEGACY_SETTINGS_KEY = "settings";
+export const LEGACY_SETTINGS_KEY = "settings";
 
 /** At most one migration attempt per session — a re-run could never find more. */
 let legacyMigrationAttempted = false;
@@ -42,10 +43,16 @@ function migrateLegacyFavorites(): string[] {
 		if (!parsed || typeof parsed !== "object") return [];
 		const record = parsed as Record<string, unknown>;
 
-		// Name-based entries are the shape the legacy UI actually read.
-		let legacyEntries: string[] = Array.isArray(record.FavoriteNames)
-			? record.FavoriteNames.filter((entry): entry is string => typeof entry === "string")
+		// The legacy reader preferred lowercase "favorites", then fell back to
+		// FavoriteNames — entries may be frame NAMES or (in some builds) full
+		// URLs, so both shapes are honored in the mapping below.
+		let legacyEntries: string[] = Array.isArray(record.favorites)
+			? record.favorites.filter((entry): entry is string => typeof entry === "string")
 			: [];
+		if (legacyEntries.length === 0 && Array.isArray(record.FavoriteNames))
+			legacyEntries = record.FavoriteNames.filter(
+				(entry): entry is string => typeof entry === "string",
+			);
 		if (legacyEntries.length === 0 && Array.isArray(record.FavoriteIndexes)) {
 			// Oldest shape: indexes into the built-in sources list. Best-effort
 			// only — the list may have changed since they were saved.
@@ -74,7 +81,10 @@ function migrateLegacyFavorites(): string[] {
 		const seen = new Set<string>();
 		const favorites: string[] = [];
 		for (const entry of legacyEntries) {
-			const url = urlByName.get(entry.trim().toLowerCase());
+			// Full URLs pass through as-is; anything else is looked up as a
+			// frame name (case-insensitively).
+			const trimmed = entry.trim();
+			const url = /^https?:\/\//i.test(trimmed) ? trimmed : urlByName.get(trimmed.toLowerCase());
 			if (!url || seen.has(url)) continue;
 			seen.add(url);
 			favorites.push(url);
@@ -132,8 +142,12 @@ export function writeFavorites(urls: string[]): string[] {
 	try {
 		localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
 	} catch {
-		/* storage unavailable — favorites stay session-only */
+		showToast(
+			"Storage is full or unavailable — favorites will last for this session only.",
+			"error",
+		);
 	}
+	if (typeof window === "undefined") return favorites;
 	window.dispatchEvent(new CustomEvent(FAVORITES_EVENT, { detail: { favorites } }));
 	return favorites;
 }
@@ -144,6 +158,23 @@ export function toggleFavoriteUrl(url: string): string[] {
 	const next = favorites.filter((favorite) => favorite !== url);
 	if (next.length === favorites.length) next.push(url);
 	return writeFavorites(next);
+}
+
+/** Removes url from the saved order; no-op (no write/event) when absent. */
+export function removeFavoriteUrl(url: string): string[] {
+	const favorites = readFavorites();
+	if (!favorites.includes(url)) return favorites;
+	return writeFavorites(favorites.filter((favorite) => favorite !== url));
+}
+
+/**
+ * Rewrites oldUrl to newUrl in place (order preserved) after a custom
+ * frame's URL edit; no-op (no write/event) when oldUrl is not saved.
+ */
+export function renameFavoriteUrl(oldUrl: string, newUrl: string): string[] {
+	const favorites = readFavorites();
+	if (!favorites.includes(oldUrl)) return favorites;
+	return writeFavorites(favorites.map((favorite) => (favorite === oldUrl ? newUrl : favorite)));
 }
 
 /** Moves the favorite at index `from` to index `to`; out-of-bounds moves are a no-op. */

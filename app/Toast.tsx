@@ -11,6 +11,9 @@ export type ToastAction = { label: string; onClick: () => void };
 export const TOAST_EVENT = "sf:toast";
 export const TOAST_LIMIT = 4;
 export const TOAST_DURATION = 3800;
+/** Toasts carrying an action (e.g. Undo) linger longer — they are recovery
+ * affordances, and a vanished Undo is a permanently lost action. */
+export const TOAST_ACTION_DURATION = 9000;
 export const TOAST_EXIT_MS = 240;
 
 /**
@@ -29,7 +32,7 @@ export type ToastPayload = {
 type ToastItem = ToastPayload & { exiting: boolean };
 
 const dismissButtonClass =
-	"inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition duration-150 hover:bg-raised hover:text-ink active:scale-90";
+	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition duration-150 hover:bg-raised hover:text-ink active:scale-90";
 
 const kindIconClass: Record<ToastKind, string> = {
 	success: "text-accent",
@@ -150,6 +153,25 @@ export function ToastRegion() {
 		[removeToast, schedule],
 	);
 
+	/** Pause auto-dismiss while the user is reading/aiming (hover or focus). */
+	const pauseToast = useCallback((id: string) => {
+		const auto = autoTimersRef.current.get(id);
+		if (auto === undefined) return;
+		window.clearTimeout(auto);
+		pendingTimersRef.current.delete(auto);
+		autoTimersRef.current.delete(id);
+	}, []);
+
+	/** Resume auto-dismiss with a fresh full duration; never for exiting toasts. */
+	const resumeToast = useCallback(
+		(id: string) => {
+			if (exitingRef.current.has(id) || autoTimersRef.current.has(id)) return;
+			const auto = schedule(() => beginExit(id), TOAST_DURATION);
+			autoTimersRef.current.set(id, auto);
+		},
+		[beginExit, schedule],
+	);
+
 	useEffect(() => {
 		const onToast = (e: Event) => {
 			const detail = (e as CustomEvent<ToastPayload>).detail;
@@ -173,7 +195,10 @@ export function ToastRegion() {
 				toast.action = { label: rawAction.label, onClick: rawAction.onClick };
 			}
 			setToasts((list) => [...list, toast].slice(-TOAST_LIMIT));
-			const autoId = schedule(() => beginExit(toast.id), TOAST_DURATION);
+			const autoId = schedule(
+				() => beginExit(toast.id),
+				toast.action ? TOAST_ACTION_DURATION : TOAST_DURATION,
+			);
 			autoTimersRef.current.set(toast.id, autoId);
 		};
 		window.addEventListener(TOAST_EVENT, onToast);
@@ -189,11 +214,18 @@ export function ToastRegion() {
 		<div
 			role="status"
 			aria-live="polite"
-			className="pointer-events-none fixed bottom-4 inset-x-4 z-[60] flex flex-col gap-2 sm:left-auto sm:right-6"
+			className="pointer-events-none fixed bottom-4 inset-x-4 z-[10000] flex flex-col gap-2 sm:left-auto sm:right-6"
 		>
 			{toasts.map((toast) => (
 				<div
-					key={toast.id}
+					// Errors interrupt (role=alert implies assertive); the rest ride the
+					// region's polite announcement.
+					role={toast.kind === "error" ? "alert" : undefined}
+					// Hover/focus pauses the auto-dismiss timer (WCAG timing).
+					onMouseEnter={() => pauseToast(toast.id)}
+					onMouseLeave={() => resumeToast(toast.id)}
+					onFocus={() => pauseToast(toast.id)}
+					onBlur={() => resumeToast(toast.id)}
 					className={`${
 						toast.exiting ? "animate-toast-out" : "animate-toast-in"
 					} pointer-events-auto flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-sm shadow-lg`}
@@ -221,7 +253,7 @@ export function ToastRegion() {
 								// the click cannot race the 3800ms timer.
 								beginExit(toast.id);
 							}}
-							className="shrink-0 text-sm font-medium text-accent hover:underline underline-offset-2"
+							className="shrink-0 text-sm font-medium text-accent-text hover:underline underline-offset-2"
 						>
 							{toast.action.label}
 						</button>

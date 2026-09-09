@@ -8,7 +8,12 @@
  * the built-in sources.
  */
 
-import { removeRecentByUrl } from "./recent";
+import { sources } from "./sources";
+import { showToast } from "../Toast";
+import { removeFavoriteUrl, renameFavoriteUrl } from "./favorites";
+import { removeRecentByUrl, renameRecentUrl } from "./recent";
+import { removeOpenCount, renameOpenCount } from "./openCounts";
+import { isEmbeddableUrl } from "../utils/urlGuard";
 
 export type CustomFrame = {
 	id: string; // generated at add time
@@ -73,8 +78,14 @@ function persist(frames: CustomFrame[]): void {
 	try {
 		localStorage.setItem(CUSTOM_FRAMES_KEY, JSON.stringify(frames));
 	} catch {
-		/* storage unavailable — custom frames stay session-only */
+		// Never a silent loss: the UI has already shown the new state, so make
+		// it clear that this change could not actually be saved.
+		showToast(
+			"Storage is full or unavailable — custom frames will last for this session only.",
+			"error",
+		);
 	}
+	if (typeof window === "undefined") return;
 	window.dispatchEvent(new CustomEvent(CUSTOM_FRAMES_EVENT, { detail: { frames } }));
 }
 
@@ -96,7 +107,12 @@ export function addCustomFrame(input: {
 	const frames = readCustomFrames();
 	const name = input.name.trim();
 	const url = input.URL.trim();
-	if (!name || !/^https?:\/\//i.test(url)) return frames;
+	// Same embeddability bar as edit/import (http(s), never this app's own
+	// origin) — and a custom frame may not shadow a built-in frame's URL:
+	// every list is keyed by URL, so a duplicate would corrupt them.
+	if (!name || !isEmbeddableUrl(url) || sources.some((source) => source.URL === url)) {
+		return frames;
+	}
 	const description = input.description?.trim() || undefined;
 	const tags = input.tags
 		.map((tag) => tag.trim())
@@ -121,16 +137,28 @@ export function addCustomFrame(input: {
 }
 
 /**
- * Validates every entry exactly like readCustomFrames does (invalid ones are
- * skipped, not fatal), replaces the whole stored list, persists, and
+ * Validates every entry — the same shape checks as readCustomFrames plus
+ * the shared embeddability bar and URL/id uniqueness (invalid, non-web, or
+ * duplicate entries are skipped, not fatal) — replaces the whole stored
+ * list, persists, and
  * broadcasts the update. Used by the Settings data import.
  */
 export function writeCustomFrames(frames: CustomFrame[]): CustomFrame[] {
 	const validated: CustomFrame[] = [];
+	const seenUrls = new Set<string>();
+	const seenIds = new Set<string>();
 	for (const entry of frames) {
 		if (!entry || typeof entry !== "object") continue;
 		const frame = toCustomFrame(entry as Record<string, unknown>);
-		if (frame) validated.push(frame);
+		// Same bar as the interactive paths — shape, embeddability (http(s),
+		// never this app's own origin), and no two entries sharing a URL or an
+		// id — so import files and undo-restores can never corrupt the
+		// URL-keyed lists.
+		if (!frame || !isEmbeddableUrl(frame.URL)) continue;
+		if (seenUrls.has(frame.URL) || seenIds.has(frame.id)) continue;
+		seenUrls.add(frame.URL);
+		seenIds.add(frame.id);
+		validated.push(frame);
 	}
 	persist(validated);
 	return validated;
@@ -160,7 +188,10 @@ export function updateCustomFrame(
 	const current = frames[index];
 	const name = (changes.name ?? current.name).trim();
 	const url = (changes.URL ?? current.URL).trim();
-	if (!name || !/^https?:\/\//i.test(url)) return frames;
+	// Same embeddability bar as add — and no two frames may share one URL
+	// (every list is keyed by URL; a duplicate would corrupt it).
+	if (!name || !isEmbeddableUrl(url)) return frames;
+	if (frames.some((entry) => entry.id !== id && entry.URL === url)) return frames;
 	const rawDescription =
 		changes.description === undefined ? current.description : changes.description;
 	const description = typeof rawDescription === "string" ? rawDescription.trim() || null : null;
@@ -185,6 +216,14 @@ export function updateCustomFrame(
 	const next = [...frames];
 	next[index] = frame;
 	persist(next);
+	// A URL change must carry the URL-keyed side data (favorites, recents,
+	// open counts) over to the new URL — otherwise favorites silently drop,
+	// recent chips open the dead URL, and the old count is orphaned.
+	if (url !== current.URL) {
+		renameFavoriteUrl(current.URL, url);
+		renameRecentUrl(current.URL, url, name);
+		renameOpenCount(current.URL, url);
+	}
 	return next;
 }
 
@@ -199,6 +238,12 @@ export function deleteCustomFrame(id: string): CustomFrame[] {
 	const next = frames.filter((entry) => entry.id !== id);
 	if (next.length === frames.length) return frames;
 	persist(next);
-	if (deleted) removeRecentByUrl(deleted.URL);
+	if (deleted) {
+		// Prune every URL-keyed trace of the deleted frame, not just recents:
+		// a stale favorite badge or an orphaned open count would survive it.
+		removeRecentByUrl(deleted.URL);
+		removeFavoriteUrl(deleted.URL);
+		removeOpenCount(deleted.URL);
+	}
 	return next;
 }
