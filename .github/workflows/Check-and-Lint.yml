@@ -15,21 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Default ref: for pull_request events this is the merge commit GitHub
+      # would actually ship, not just the PR head.
       - name: Checkout
         if: github.event_name != 'workflow_run'
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 26
 
       - name: Setup PNPM
         uses: pnpm/action-setup@v6
         with:
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -37,6 +38,11 @@ jobs:
       - name: Oxlint
         id: lint
         run: pnpm lint
+        continue-on-error: true
+
+      - name: Format check
+        id: fmt
+        run: pnpm fmt:check
         continue-on-error: true
 
       - name: Type Check
@@ -54,6 +60,7 @@ jobs:
           always() &&
           (
             steps.lint.outcome == 'failure' ||
+            steps.fmt.outcome == 'failure' ||
             steps.typecheck.outcome == 'failure' ||
             steps.build.outcome == 'failure'
           )

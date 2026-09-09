@@ -39,6 +39,10 @@ function toCustomFrame(record: Record<string, unknown>): CustomFrame | null {
 		return null;
 	}
 	if (record.kind !== undefined && record.kind !== "iframe" && record.kind !== "link") return null;
+	// Read-time mirror of the write-path bar: entries stored before URL
+	// validation existed (or edited out-of-band in storage) must never leak
+	// non-http(s) or self-origin URLs into the viewer and the pop-outs.
+	if (!isEmbeddableUrl(record.URL)) return null;
 	return {
 		id: record.id,
 		name: record.name,
