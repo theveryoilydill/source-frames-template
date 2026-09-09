@@ -36,7 +36,7 @@ import {
 import { OPEN_COUNTS_EVENT, clearOpenCounts, readOpenCounts } from "../data/openCounts";
 import { SORT_KEY } from "../data/sortPref";
 import { sources } from "../data/sources";
-import { isEmbeddableUrl, isWebUrl } from "../utils/urlGuard";
+import { isEmbeddableUrl } from "../utils/urlGuard";
 
 const APP_VERSION = "2.0.0";
 
@@ -135,7 +135,9 @@ function toImportedRecent(entry: unknown): RecentEntry | null {
 	const url =
 		typeof record.URL === "string" ? record.URL : typeof record.url === "string" ? record.url : "";
 	const name = typeof record.name === "string" ? record.name : "";
-	if (!url || !name || !isWebUrl(url)) return null;
+	// Same bar writeRecent applies (http(s), never this app's own origin),
+	// so the preview counts can never differ from what the import keeps.
+	if (!url || !name || !isEmbeddableUrl(url)) return null;
 	return {
 		URL: url,
 		name,
