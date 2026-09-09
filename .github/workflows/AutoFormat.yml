@@ -6,10 +6,17 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 jobs:
   format:
     runs-on: ubuntu-latest
+    # Fork PRs get a read-only GITHUB_TOKEN, so the push below can never
+    # succeed for them — skip instead of failing with a permanent red X.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: format-${{ github.event.pull_request.number || github.ref_name }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout
@@ -19,15 +26,16 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 26
-
       - name: Setup PNPM
         uses: pnpm/action-setup@v6
         with:
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

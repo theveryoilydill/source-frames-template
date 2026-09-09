@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../useFocusTrap";
-import { openAboutBlank } from "../utils/aboutBlank";
+import { showToast } from "../Toast";
+import { openDirectTab, popOutFrame } from "../utils/aboutBlank";
 
 type FrameContentProps = {
 	url: string;
@@ -201,20 +202,23 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	};
 
 	const handlePopOut = () => {
-		// Navbar "Open in new tab": open a blank tab synchronously inside the
-		// click gesture (that is what keeps popup blockers from swallowing
-		// it), then populate the tab with the cloaked source shell. If the
-		// browser still blocked the popup, fall back to a plain new-tab
-		// handoff so the source always opens somewhere.
-		if (!openAboutBlank(url, title)) {
-			window.open(url, "_blank", "noopener,noreferrer");
+		// Navbar "Open in new tab": one guarded helper owns every pop-out —
+		// cloaked shell first (opened synchronously inside the click gesture
+		// so popup blockers don't swallow it), plain new-tab fallback if the
+		// popup was still blocked, and a rejection (false) when the URL fails
+		// the embeddability bar (stale storage data, own-origin URL).
+		if (!popOutFrame(url, title)) {
+			showToast("That URL can't be opened in a new tab (http(s) URLs only).", "error");
 		}
 	};
 
 	const handleHintPopOut = () => {
 		// The slow-embed pill's "Pop it out" suggestion is a direct handoff:
-		// open a new tab at the source URL itself, no cloak in between.
-		window.open(url, "_blank", "noopener,noreferrer");
+		// open a new tab at the source URL itself, no cloak in between — but
+		// still through the same embeddability bar as every other pop-out.
+		if (!openDirectTab(url)) {
+			showToast("That URL can't be opened in a new tab (http(s) URLs only).", "error");
+		}
 	};
 
 	const reloadFrame = () => setReloadKey((k) => k + 1);

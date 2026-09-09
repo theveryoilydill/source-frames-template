@@ -31,6 +31,7 @@ import {
 } from "../data/customFrames";
 import { OPEN_COUNTS_EVENT, readOpenCounts, recordOpen } from "../data/openCounts";
 import { isEmbeddableUrl } from "../utils/urlGuard";
+import { openDirectTab } from "../utils/aboutBlank";
 import { readSortPref, writeSortPref, type SortPref } from "../data/sortPref";
 
 export function meta(_args: Route.MetaArgs) {
@@ -666,7 +667,11 @@ export default function Home() {
 	// handleFrameOpened the cards use and open the shared viewer overlay.
 	const handlePaletteOpen = (source: SourceData) => {
 		if (source.kind === "link") {
-			window.open(source.URL, "_blank", "noopener,noreferrer");
+			// Same guarded handoff as the viewer's pop-outs: http(s) only,
+			// never this app's own origin.
+			if (!openDirectTab(source.URL)) {
+				showToast("That URL can't be opened in a new tab (http(s) URLs only).", "error");
+			}
 			return;
 		}
 		handleFrameOpened(source.URL, source.name);
