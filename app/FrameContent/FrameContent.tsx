@@ -43,6 +43,9 @@ const getFullscreenElement = (): Element | null => {
 export default function FrameContent({ url, onClose, title }: FrameContentProps) {
 	const closeRef = useRef<HTMLButtonElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	// Sink-side URL validation (defense in depth): only ever hand a vetted URL
+	// to navigation sinks such as iframe/src and pop-out helpers.
+	const safeUrl = isEmbeddableUrl(url) ? url : "";
 	// The frame area (iframe + hint pills + loading backdrop) — the element
 	// that goes fullscreen so only the source fills the screen.
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -477,11 +480,11 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 						</button>
 					</div>
 				) : null}
-				{embeddable ? (
+				{safeUrl ? (
 					<iframe
 						key={reloadKey}
-						src={url}
-						title={title ?? url}
+						src={safeUrl}
+						title={title ?? safeUrl}
 						onLoad={() => {
 							setLoaded(true);
 							setSlowHint(false);
