@@ -11,6 +11,18 @@
 
 import { isEmbeddableUrl } from "./urlGuard";
 
+const toSafeEmbeddableHref = (url: string): string | null => {
+	// Sink-local hardening: parse + protocol check + shared origin policy.
+	try {
+		const parsed = new URL(url);
+		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+		if (!isEmbeddableUrl(parsed.href)) return null;
+		return parsed.href;
+	} catch {
+		return null;
+	}
+};
+
 const hostnameOf = (url: string) => {
 	try {
 		return new URL(url).hostname || url;
@@ -42,7 +54,8 @@ export function openAboutBlank(url: string, title?: string): boolean {
 	// Only real web origins make sense behind the injected shell — and the
 	// shell is same-origin with the app, so the shared same-origin guard
 	// applies here too.
-	if (!isEmbeddableUrl(url)) return false;
+	const safeUrl = toSafeEmbeddableHref(url);
+	if (!safeUrl) return false;
 
 	try {
 		// Synchronous on purpose: running inside the click gesture is what
@@ -51,12 +64,12 @@ export function openAboutBlank(url: string, title?: string): boolean {
 		if (!win) return false;
 
 		const doc = win.document;
-		doc.title = title || hostnameOf(url);
+		doc.title = title || hostnameOf(safeUrl);
 		const style = doc.createElement("style");
 		style.textContent = SHELL_STYLE;
 		doc.head.appendChild(style);
 		const frame = doc.createElement("iframe");
-		frame.src = url;
+		frame.src = safeUrl;
 		frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups");
 		frame.setAttribute("allow", "fullscreen");
 		frame.setAttribute("allowfullscreen", "");
@@ -82,8 +95,9 @@ export function openAboutBlank(url: string, title?: string): boolean {
  * the tab was opened, false when the URL was rejected.
  */
 export function openDirectTab(url: string): boolean {
-	if (!isEmbeddableUrl(url)) return false;
-	window.open(url, "_blank", "noopener,noreferrer");
+	const safeUrl = toSafeEmbeddableHref(url);
+	if (!safeUrl) return false;
+	window.open(safeUrl, "_blank", "noopener,noreferrer");
 	return true;
 }
 
