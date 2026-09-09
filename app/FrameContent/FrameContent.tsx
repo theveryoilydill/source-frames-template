@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../useFocusTrap";
 import { showToast } from "../Toast";
 import { openDirectTab, popOutFrame } from "../utils/aboutBlank";
+import { isEmbeddableUrl } from "../utils/urlGuard";
 
 type FrameContentProps = {
 	url: string;
@@ -260,7 +261,13 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 
 	if (!url) return null;
 
-	const canPopOut = /^https?:\/\//i.test(url);
+	// Sink-side bar: every read path (custom frames, recents, built-ins) is
+	// validated upstream, but this component's output IS the navigation — so
+	// it re-checks before anything becomes a frame or a pop-out. A URL that
+	// fails the bar (non-http(s), or this app's own origin) renders the
+	// blocked panel instead of the iframe.
+	const embeddable = isEmbeddableUrl(url);
+	const canPopOut = embeddable;
 	// iPhone Safari exposes no element-fullscreen API — the button would
 	// silently do nothing there, so it is hidden instead of dead.
 	const fullscreenSupported =
@@ -423,7 +430,7 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
                                     4s slow-embed hint appears it owns the message (the ring
                                     and caption yield to it) and after a dismissal the
                                     spinner stays gone — only a reload brings it back. */}
-				{!loaded ? (
+				{embeddable && !loaded ? (
 					<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-page">
 						{!slowHint ? (
 							<>
@@ -433,7 +440,7 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 						) : null}
 					</div>
 				) : null}
-				{slowHint && !hintDismissed ? (
+				{slowHint && !hintDismissed && embeddable ? (
 					<div className="animate-fade-in absolute bottom-4 left-1/2 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2.5 rounded-full border border-hairline bg-surface px-4 py-2 shadow-lg">
 						<span className="text-xs text-muted">
 							Still loading? Some sites refuse to be embedded.
@@ -470,23 +477,36 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 						</button>
 					</div>
 				) : null}
-				<iframe
-					key={reloadKey}
-					src={url}
-					title={title ?? url}
-					onLoad={() => {
-						setLoaded(true);
-						setSlowHint(false);
-					}}
-					// The parent document fires focus on the iframe element
-					// itself when the frame gains focus (React onFocus is the
-					// bubbling focusin) — the one moment Escape stops working.
-					onFocus={showIframeHint}
-					className="h-full w-full border-0 bg-white"
-					sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-					allow="fullscreen"
-					allowFullScreen
-				/>
+				{embeddable ? (
+					<iframe
+						key={reloadKey}
+						src={url}
+						title={title ?? url}
+						onLoad={() => {
+							setLoaded(true);
+							setSlowHint(false);
+						}}
+						// The parent document fires focus on the iframe element
+						// itself when the frame gains focus (React onFocus is the
+						// bubbling focusin) — the one moment Escape stops working.
+						onFocus={showIframeHint}
+						className="h-full w-full border-0 bg-white"
+						sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+						allow="fullscreen"
+						allowFullScreen
+					/>
+				) : (
+					<div
+						role="alert"
+						className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-page px-6 text-center"
+					>
+						<span className="text-sm font-medium text-ink">This frame cannot be displayed</span>
+						<span className="max-w-sm text-xs text-muted">
+							Only http(s) URLs from other sites can be embedded here. Edit or remove the frame in
+							Settings to continue.
+						</span>
+					</div>
+				)}
 			</div>
 		</div>
 	);
