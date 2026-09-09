@@ -45,7 +45,16 @@ export default function FrameContent({ url, onClose, title }: FrameContentProps)
 	const containerRef = useRef<HTMLDivElement>(null);
 	// Sink-side URL validation (defense in depth): only ever hand a vetted URL
 	// to navigation sinks such as iframe/src and pop-out helpers.
-	const safeUrl = isEmbeddableUrl(url) ? url : "";
+	const safeUrl = (() => {
+		if (!isEmbeddableUrl(url)) return "";
+		try {
+			const parsed = new URL(url);
+			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+			return parsed.href;
+		} catch {
+			return "";
+		}
+	})();
 	// The frame area (iframe + hint pills + loading backdrop) — the element
 	// that goes fullscreen so only the source fills the screen.
 	const contentRef = useRef<HTMLDivElement>(null);
