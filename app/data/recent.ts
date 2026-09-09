@@ -14,6 +14,7 @@ export type RecentEntry = {
 };
 
 import { showToast } from "../Toast";
+import { isEmbeddableUrl } from "../utils/urlGuard";
 
 export const RECENT_KEY = "sf:recent";
 export const RECENT_EVENT = "sf:recentUpdated";
@@ -25,8 +26,14 @@ export function readRecent(): RecentEntry[] {
 		const raw = localStorage.getItem(RECENT_KEY);
 		const parsed = raw ? (JSON.parse(raw) as RecentEntry[]) : [];
 		if (!Array.isArray(parsed)) return [];
+		// The URL bar applies at READ time, mirroring customFrames: entries
+		// stored before validation existed (or edited out-of-band in storage)
+		// must never reach the viewer iframe or the pop-out helpers — recent
+		// chips open straight into the frame viewer, so a stale entry could
+		// otherwise carry a non-http(s) or own-origin URL into a navigation.
 		return parsed.filter((entry) => {
 			if (!entry || typeof entry.URL !== "string" || typeof entry.name !== "string") return false;
+			if (!isEmbeddableUrl(entry.URL)) return false;
 			if (entry.openedAt === undefined) return true;
 			return typeof entry.openedAt === "number" && Number.isFinite(entry.openedAt);
 		});
@@ -52,6 +59,9 @@ export function writeRecent(entries: RecentEntry[]): RecentEntry[] {
 			!entry.name
 		)
 			continue;
+		// Same bar as reads (and as customFrames writes): a URL that could
+		// never be displayed must not enter storage in the first place.
+		if (!isEmbeddableUrl(entry.URL)) continue;
 		if (
 			entry.openedAt !== undefined &&
 			(typeof entry.openedAt !== "number" || !Number.isFinite(entry.openedAt))
